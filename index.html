@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实验3a：智驾助手合作意愿实验</title>
+    <script src="jspsych/jspsych.js"></script>
+    <script src="plugins/plugin-html-keyboard-response.js"></script>
+    <script src="plugins/plugin-preload.js"></script>
+    <link rel="stylesheet" href="jspsych/jspsych.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e24;
+            color: #e0e0e0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            user-select: none;
+        }
+        .jspsych-display-element { background-color: #1e1e24; color: #e0e0e0; }
+        .jspsych-content-wrapper { justify-content: center; align-items: center; width: 100%; height: 100%; padding: 0; }
+        .jspsych-content { width: 100%; max-width: none; }
+        .hidden { display: none !important; }
+        .fullscreen-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .highlight-text { color: #ffb74d; font-weight: bold; }
+        .ready-text { color: #4CAF50; font-weight: bold; animation: blink 2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* 登录 */
+        .login-box {
+            background-color: #2b2b36;
+            padding: 50px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            text-align: center;
+        }
+        .login-title { font-size: 32px; color: #64b5f6; margin-bottom: 30px; font-weight: bold; }
+        .login-input {
+            font-size: 28px;
+            padding: 10px;
+            width: 220px;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid #64b5f6;
+            background-color: #15151a;
+            color: white;
+            margin-bottom: 30px;
+            outline: none;
+        }
+        .login-btn, .action-btn {
+            font-size: 22px;
+            padding: 12px 34px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .login-btn:hover, .action-btn:hover { filter: brightness(1.08); }
+
+        /* 通用指导语 */
+        .guide-box {
+            background-color: #2b2b36;
+            padding: 38px 56px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            width: min(900px, 88vw);
+            line-height: 1.8;
+            font-size: 21px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .guide-title {
+            font-size: 34px;
+            color: #64b5f6;
+            margin-bottom: 26px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .footer-hint { margin-top: 32px; text-align: center; font-size: 20px; color: #9e9e9e; height: 30px; }
+        .context-box {
+            background-color: #383846;
+            padding: 18px 26px;
+            border-left: 5px solid #ffb74d;
+            margin-bottom: 24px;
+            border-radius: 4px;
+            font-size: 19px;
+        }
+        .key-hint-box {
+            background-color: #15151a;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: center;
+            font-size: 19px;
+            margin-top: 15px;
+            color: #b0bec5;
+        }
+
+        /* 概念学习 */
+        .concept-cards { display: flex; gap: 20px; width: min(1000px, 92vw); margin-bottom: 18px; }
+        .concept-card {
+            flex: 1;
+            background-color: #383846;
+            border-radius: 8px;
+            padding: 20px;
+            border-top: 4px solid #64b5f6;
+        }
+        .concept-card.warmth { border-top-color: #ffb74d; }
+        .concept-card h3 { margin-top: 0; color: #e0e0e0; border-bottom: 1px solid #555; padding-bottom: 10px; font-size: 20px; }
+        .concept-card p { font-size: 16px; color: #b0bec5; line-height: 1.6; }
+        .quiz-section {
+            background-color: #15151a;
+            border: 1px solid #444;
+            padding: 22px 36px;
+            border-radius: 8px;
+            width: min(920px, 88vw);
+            font-size: 19px;
+            margin-top: 28px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        /* 人口学 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px 24px;
+            margin-top: 20px;
+        }
+        .form-item {
+            background-color: #15151a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .form-item label { display: block; margin-bottom: 10px; color: #b0bec5; font-size: 17px; }
+        .form-item input, .form-item select {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #2b2b36;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 18px;
+            outline: none;
+        }
+        .warn-text { text-align: center; color: #ff5252; font-size: 18px; margin-top: 16px; min-height: 24px; font-weight: bold; }
+
+        /* 基线点数分配 */
+        .allocation-wrap {
+            display: flex;
+            gap: 34px;
+            justify-content: center;
+            align-items: stretch;
+            margin: 24px 0;
+        }
+        .allocation-card {
+            width: 320px;
+            padding: 24px;
+            background-color: #15151a;
+            border: 1px solid #444;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .allocation-card.comp { border-top: 5px solid #4CAF50; }
+        .allocation-card.warm { border-top: 5px solid #FF9800; }
+        .allocation-score { font-size: 54px; font-weight: bold; margin: 16px 0; }
+        .allocation-controls { display: flex; justify-content: center; gap: 18px; }
+        .mini-btn {
+            width: 54px;
+            height: 44px;
+            font-size: 26px;
+            border-radius: 8px;
+            border: 1px solid #666;
+            background-color: #383846;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* 四种助手介绍卡 */
+        .assistant-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            width: min(1100px, 92vw);
+        }
+        .assistant-card {
+            background-color: #2b2b36;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-sizing: border-box;
+        }
+        .assistant-card-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 14px; color: #fff; }
+        .mini-dim-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; }
+        .mini-dim-label { width: 110px; font-size: 18px; font-weight: bold; }
+        .mini-bars { display: flex; gap: 10px; }
+        .mini-bar { width: 54px; height: 20px; border: 2px solid #777; border-radius: 5px; background-color: rgba(255,255,255,0.04); }
+        .mini-bar.comp.on { background-color: #4CAF50; border-color: #4CAF50; box-shadow: 0 0 8px rgba(76,175,80,0.35); }
+        .mini-bar.warm.on { background-color: #FF9800; border-color: #FF9800; box-shadow: 0 0 8px rgba(255,152,0,0.35); }
+
+        /* 正式试验矩阵：沿用3b的两列结构 */
+        .matrix-shell {
+            display: flex;
+            width: min(1200px, 94vw);
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 0 auto;
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 50%;
+            box-sizing: border-box;
+        }
+        .panel-title {
+            font-size: clamp(20px, 1.45vw, 27px);
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .attr-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .attr-name {
+            font-size: clamp(15px, 1.05vw, 20px);
+            color: #b0bec5;
+            margin-bottom: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .block-container { display: flex; gap: clamp(10px, 1vw, 18px); justify-content: center; }
+        .block {
+            width: clamp(42px, 3.5vw, 62px);
+            height: clamp(15px, 1.35vw, 24px);
+            border-radius: 6px;
+            border: 2px solid #777;
+            box-sizing: border-box;
+        }
+        .block-filled-comp { background-color: #4CAF50; border-color: #4CAF50; box-shadow: 0 0 10px rgba(76,175,80,0.35); }
+        .block-filled-warm { background-color: #FF9800; border-color: #FF9800; box-shadow: 0 0 10px rgba(255,152,0,0.35); }
+        .block-empty { background-color: rgba(255,255,255,0.04); }
+
+        /* 试次下方评分区 */
+        .rating-question { font-size: clamp(19px, 1.45vw, 27px); font-weight: bold; color: #f0f0f0; margin-bottom: 14px; text-align: center; }
+        .rating-scale {
+            display: flex;
+            justify-content: space-between;
+            width: min(1000px, 90vw);
+            font-size: clamp(14px, 1vw, 18px);
+            color: #64b5f6;
+            font-weight: bold;
+        }
+        .rating-choice { margin-top: 12px; font-size: clamp(18px, 1.25vw, 23px); color: #4CAF50; font-weight: bold; text-align: center; }
+        .rating-hint { margin-top: 8px; color: #ffb74d; font-size: clamp(14px, 1vw, 18px); text-align: center; }
+        .assistant-badge {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 18px;
+            background-color: #15151a;
+            border: 1px solid #555;
+            border-radius: 999px;
+            font-size: clamp(14px, 1vw, 18px);
+            color: #d7d7d7;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="fullscreen-container">
+        <div class="login-box">
+            <div class="login-title">录入被试信息</div>
+            <input type="number" id="subject-id-input" class="login-input" placeholder="输入编号" min="1"><br>
+            <button class="login-btn" onclick="startExperiment()">进入实验系统</button>
+        </div>
+    </div>
+
+    <div id="jspsych-target"></div>
+
+<script>
+    /* =========================================================
+       1. 全局变量与材料
+       ========================================================= */
+    let currentSubjectId = "";
+    let versionIndex = 0;
+    let spatialLayout = "CompLeft";
+    let currentVersion = "";
+    let baselineAbility = null;
+    let baselineEmotion = null;
+    let demographics = {};
+
+    /* =========================================================
+       DataPipe / OSF 在线数据回收配置
+       =========================================================
+       1) 在 https://pipe.jspsych.org 创建实验后，将实验 ID 填到下方。
+       2) DataPipe 后台将 Condition assignment 设置为 4 个条件。
+          条件 0 = 顺序A × 能力左 × 标签映射1
+          条件 1 = 顺序A × 情感左 × 标签映射2
+          条件 2 = 顺序B × 能力左 × 标签映射3
+          条件 3 = 顺序B × 情感左 × 标签映射4
+       3) 正式收集时 DATAPIPE_REQUIRED 保持 true；若分配/上传失败，实验不会静默继续。
+    */
+    const DATAPIPE_EXPERIMENT_ID = 'kYthZed2dSW4';
+    const DATAPIPE_REQUIRED = true;
+    const DATAPIPE_BASE = 'https://pipe.jspsych.org/api';
+
+    let dataPipeCondition = null;
+    let sessionUUID = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `fallback-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    function dataPipeConfigured() {
+        return DATAPIPE_EXPERIMENT_ID && !DATAPIPE_EXPERIMENT_ID.startsWith('REPLACE_');
+    }
+
+    async function getDataPipeCondition() {
+        if (!dataPipeConfigured()) {
+            throw new Error('DataPipe experiment ID 尚未配置。');
+        }
+        const response = await fetch(`${DATAPIPE_BASE}/condition/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ experimentID: DATAPIPE_EXPERIMENT_ID })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || typeof result.condition !== 'number') {
+            throw new Error(result.message || `DataPipe 条件分配失败（HTTP ${response.status}）`);
+        }
+        return result.condition;
+    }
+
+    function buildUniqueDataFilename() {
+        const safeSubject = String(currentSubjectId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        return `Exp3a_Subject_${safeSubject}_Cond${dataPipeCondition}_${stamp}_${sessionUUID}.csv`;
+    }
+
+    async function uploadFinalDataToDataPipe(csvString) {
+        if (!dataPipeConfigured()) {
+            throw new Error('DataPipe experiment ID 尚未配置。');
+        }
+        const filename = buildUniqueDataFilename();
+        const response = await fetch(`${DATAPIPE_BASE}/data/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                experimentID: DATAPIPE_EXPERIMENT_ID,
+                filename: filename,
+                data: csvString
+            })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.message !== 'Success') {
+            throw new Error(result.message || `DataPipe 数据上传失败（HTTP ${response.status}）`);
+        }
+        return { filename, result };
+    }
+
+    function prepareLocalBackup(csvString) {
+        window.downloadCSV = function() {
+            const fileName = `BACKUP_Exp3a_Subject_${currentSubjectId}_${sessionUUID}.csv`;
+            const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+    }
+
+    const txt1 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆正行驶在公路上，此时，侧方有一辆车准备汇入我们所在的车道…";
+    const txt2 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆正沿着道路向前行驶，此时，前方路面出现了施工区域和路障…";
+    const txt3 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆即将进入居民区，正在驶向路口…";
+    const txt4 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆正准备通过前方的十字路口，此时，前方交通状况发生了变化…";
+    const txt5 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆正准备驶入弯道区域…";
+    const txt6 = "您现在正坐在由智驾助手驾驶的汽车后排。车辆即将抵达目的地，准备寻找合适的空车位停车…";
+    const sceneText = {1: txt1, 2: txt2, 3: txt3, 4: txt4, 5: txt5, 6: txt6};
+
+    /* 四种实验条件。level=1/2/3分别表示该大类属性的低/中/高配置。
+       正式界面中，三个能力层级共享abilityLevel，三个情感层级共享emotionLevel。 */
+    const CONFIGS = [
+        { key: 'AbilityOriented', internalName: '能力导向型', abilityLevel: 3, emotionLevel: 1 },
+        { key: 'EmotionOriented', internalName: '情感导向型', abilityLevel: 1, emotionLevel: 3 },
+        { key: 'BalancedEnhanced', internalName: '均衡增强型', abilityLevel: 2, emotionLevel: 2 },
+        { key: 'Basic', internalName: '基础配置型', abilityLevel: 1, emotionLevel: 1 }
+    ];
+
+    /* 4阶平衡拉丁方：四个DataPipe复合版本分别使用一行，把四种真实配置轮换映射到中性标签A-D。
+       这样在不增加版本总数的前提下，同时平衡字母标签。 */
+    const LABEL_LATIN = [
+        [0, 1, 3, 2],
+        [1, 2, 0, 3],
+        [2, 3, 1, 0],
+        [3, 0, 2, 1]
+    ];
+
+    let assistantLabelMap = {};   // 例如 {A: configObj, B: configObj...}
+    let configToLabel = {};       // 例如 {AbilityOriented: 'A'...}
+
+    /* 12个驾驶刺激：6种场景 × 高/低风险，各1张。
+       顺序沿用3b中已经人为拉开同类场景距离的排列。 */
+    const BASE_STIMULI = [
+        { image:'high1.png', risk:'High', scene:1 },
+        { image:'low2.png',  risk:'Low',  scene:2 },
+        { image:'high3.png', risk:'High', scene:3 },
+        { image:'low4.png',  risk:'Low',  scene:4 },
+        { image:'low5.png',  risk:'Low',  scene:5 },
+        { image:'high6.png', risk:'High', scene:6 },
+        { image:'high2.png', risk:'High', scene:2 },
+        { image:'low3.png',  risk:'Low',  scene:3 },
+        { image:'low1.png',  risk:'Low',  scene:1 },
+        { image:'high4.png', risk:'High', scene:4 },
+        { image:'high5.png', risk:'High', scene:5 },
+        { image:'low6.png',  risk:'Low',  scene:6 }
+    ].map((x, i) => ({...x, stimIndex:i, text:sceneText[x.scene]}));
+
+    const jsPsych = initJsPsych({
+        display_element: 'jspsych-target',
+        on_finish: async function() {
+            const csvString = jsPsych.data.get().csv();
+            prepareLocalBackup(csvString);
+
+            document.getElementById('jspsych-target').innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                    <div style="max-width:760px;">
+                        <h2 style="color:#64b5f6;">实验已完成，正在提交数据……</h2>
+                        <p style="color:#bbb;line-height:1.8;">请暂时不要关闭、刷新或返回此页面。数据成功保存到研究数据库后会自动显示确认信息。</p>
+                    </div>
+                </div>`;
+
+            try {
+                const upload = await uploadFinalDataToDataPipe(csvString);
+                document.getElementById('jspsych-target').innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                        <div style="max-width:760px;">
+                            <h2 style="color:#4CAF50;">✓ 数据提交成功</h2>
+                            <p style="color:#ddd;line-height:1.8;">实验已全部结束，感谢您的参与！现在可以安全关闭此页面。</p>
+                            <p style="color:#777;font-size:14px;">提交编号：${sessionUUID}</p>
+                        </div>
+                    </div>`;
+                console.log('DataPipe upload success:', upload.filename);
+            } catch (error) {
+                console.error('DataPipe upload failed:', error);
+                document.getElementById('jspsych-target').innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                        <div style="max-width:820px;">
+                            <h2 style="color:#ff7043;">数据暂未成功上传</h2>
+                            <p style="color:#ddd;line-height:1.8;">请不要直接关闭页面。您可以先检查网络并刷新后重新完成实验；如研究者允许，也可点击下方按钮保存本地备份文件并联系研究者。</p>
+                            <p style="color:#ffb74d;font-size:15px;word-break:break-all;">错误信息：${String(error.message || error)}</p>
+                            <button onclick="downloadCSV()" style="padding:12px 24px;font-size:18px;background-color:#64b5f6;color:#111;border:none;border-radius:8px;cursor:pointer;">保存本地备份 CSV</button>
+                            <p style="color:#777;font-size:14px;margin-top:20px;">会话编号：${sessionUUID}</p>
+                        </div>
+                    </div>`;
+            }
+        }
+    });
+
+    function rotateArray(arr, shift) {
+        const n = arr.length;
+        const s = ((shift % n) + n) % n;
+        return arr.slice(s).concat(arr.slice(0, s));
+    }
+
+    function setupAssistantLabels() {
+        const row = LABEL_LATIN[dataPipeCondition % 4];
+        ['A','B','C','D'].forEach((label, idx) => {
+            const cfg = CONFIGS[row[idx]];
+            assistantLabelMap[label] = cfg;
+            configToLabel[cfg.key] = label;
+        });
+    }
+
+    /* 48个正式试次 = 12个驾驶刺激 × 4种助手配置。
+       每个刺激在4个block中恰好与4种助手各配对1次；每个block中四种助手各出现3次。
+       这样对每名被试均完整覆盖4助手×2风险，并用A/B顺序版本轮换初始配对关系。 */
+    function buildFormalTrials() {
+        let all = [];
+        for (let b = 0; b < 4; b++) {
+            let blockOrder = rotateArray(BASE_STIMULI, (versionIndex * 2 + b * 3) % BASE_STIMULI.length);
+            if (b % 2 === 1) blockOrder = blockOrder.slice().reverse();
+
+            blockOrder.forEach((stim, displayPos) => {
+                const cfgIndex = (stim.stimIndex + b + versionIndex) % 4;
+                const cfg = CONFIGS[cfgIndex];
+                all.push({
+                    ...stim,
+                    block: b + 1,
+                    blockPosition: displayPos + 1,
+                    config: cfg,
+                    assistantLabel: configToLabel[cfg.key]
+                });
+            });
+        }
+        return all;
+    }
+
+    function makeBars(level, type, small=false) {
+        let html = '';
+        for (let i=1; i<=3; i++) {
+            if (small) {
+                html += `<div class="mini-bar ${type} ${i <= level ? 'on' : ''}"></div>`;
+            } else {
+                const cls = i <= level ? (type === 'comp' ? 'block-filled-comp' : 'block-filled-warm') : 'block-empty';
+                html += `<div class="block ${cls}"></div>`;
+            }
+        }
+        return html;
+    }
+
+    function renderMatrix(config, layout) {
+        const compHTML = `
+            <div class="panel">
+                <div class="panel-title">智能体能力</div>
+                <div class="attr-group"><div class="attr-name">感 知 层</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+                <div class="attr-group"><div class="attr-name">预 测 层</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+                <div class="attr-group"><div class="attr-name">执 行 层</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+            </div>`;
+        const warmHTML = `
+            <div class="panel">
+                <div class="panel-title">智能体情感</div>
+                <div class="attr-group"><div class="attr-name">觉 察 层</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+                <div class="attr-group"><div class="attr-name">共 情 层</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+                <div class="attr-group"><div class="attr-name">调 节 层</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+            </div>`;
+        return layout === 'CompLeft' ? compHTML + warmHTML : warmHTML + compHTML;
+    }
+
+    function makeAssistantCard(label) {
+        const cfg = assistantLabelMap[label];
+        return `
+            <div class="assistant-card">
+                <div class="assistant-card-title">智驾助手 ${label}</div>
+                <div class="mini-dim-row">
+                    <div class="mini-dim-label" style="color:#4CAF50;">能力属性</div>
+                    <div class="mini-bars">${makeBars(cfg.abilityLevel,'comp',true)}</div>
+                </div>
+                <div class="mini-dim-row">
+                    <div class="mini-dim-label" style="color:#FF9800;">情感属性</div>
+                    <div class="mini-bars">${makeBars(cfg.emotionLevel,'warm',true)}</div>
+                </div>
+            </div>`;
+    }
+
+    /* =========================================================
+       2. 页面节点
+       ========================================================= */
+    function createDemographicsNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box" style="width:min(920px,90vw);">
+                    <div class="guide-title">基本信息</div>
+                    <div style="color:#b0bec5;font-size:17px;line-height:1.6;">请根据您的实际情况填写。以下信息仅用于统计分析。</div>
+                    <div class="form-grid">
+                        <div class="form-item"><label>年龄</label><input id="demo-age" type="number" min="18" max="80" placeholder="例如：24"></div>
+                        <div class="form-item"><label>性别</label><select id="demo-gender"><option value="">请选择</option><option value="Male">男</option><option value="Female">女</option><option value="OtherOrPreferNot">其他/不愿回答</option></select></div>
+                        <div class="form-item"><label>是否持有机动车驾驶证</label><select id="demo-license"><option value="">请选择</option><option value="Yes">是</option><option value="No">否</option></select></div>
+                        <div class="form-item"><label>累计实际驾驶年限（无驾驶经历可填0）</label><input id="demo-years" type="number" min="0" max="60" step="0.5" placeholder="例如：2"></div>
+                        <div class="form-item" style="grid-column:1 / span 2;"><label>是否有使用智能驾驶/驾驶辅助功能的经历</label><select id="demo-adas"><option value="">请选择</option><option value="Yes">是</option><option value="No">否</option></select></div>
+                    </div>
+                    <div id="demo-warn" class="warn-text"></div>
+                    <div style="text-align:center;margin-top:12px;"><button id="demo-submit" class="action-btn">确认并继续</button></div>
+                </div>
+            </div>`,
+            on_load: function() {
+                document.getElementById('demo-submit').addEventListener('click', function() {
+                    const age = document.getElementById('demo-age').value.trim();
+                    const gender = document.getElementById('demo-gender').value;
+                    const license = document.getElementById('demo-license').value;
+                    const years = document.getElementById('demo-years').value.trim();
+                    const adas = document.getElementById('demo-adas').value;
+                    if (!age || !gender || !license || years === '' || !adas) {
+                        document.getElementById('demo-warn').innerText = '请完成全部项目后再继续。';
+                        return;
+                    }
+                    demographics = {
+                        Age: Number(age), Gender: gender, Driving_License: license,
+                        Driving_Years: Number(years), ADAS_Experience: adas
+                    };
+                    jsPsych.finishTrial({Event_Type:'Demographics', ...demographics});
+                });
+            }
+        };
+    }
+
+    function createBaselineAllocationNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box" style="width:min(900px,90vw);">
+                    <div class="guide-title">点数分配任务</div>
+                    <div class="context-box">
+                        这款智驾助手目前已经具备基本水平相同的能力功能和情感功能。现在有 <b>10 个额外升级点</b>，请根据您希望最终智驾助手更侧重哪类功能进行升级点分配。
+                    </div>
+                    <div style="text-align:center;color:#b0bec5;font-size:17px;">两类功能均需至少分配1点；总点数始终为10点。</div>
+                    <div class="allocation-wrap">
+                        <div class="allocation-card comp">
+                            <div style="font-size:24px;font-weight:bold;color:#4CAF50;">能力属性</div>
+                            <div id="ability-score" class="allocation-score" style="color:#4CAF50;">5</div>
+                            <div class="allocation-controls"><button id="ability-minus" class="mini-btn">−</button><button id="ability-plus" class="mini-btn">＋</button></div>
+                        </div>
+                        <div class="allocation-card warm">
+                            <div style="font-size:24px;font-weight:bold;color:#FF9800;">情感属性</div>
+                            <div id="emotion-score" class="allocation-score" style="color:#FF9800;">5</div>
+                            <div style="height:44px;display:flex;align-items:center;justify-content:center;color:#888;">随能力点数自动变化</div>
+                        </div>
+                    </div>
+                    <div id="allocation-warn" class="warn-text"></div>
+                    <div style="text-align:center;"><button id="allocation-submit" class="action-btn">确认分配</button></div>
+                </div>
+            </div>`,
+            on_load: function() {
+                let a = 5;
+                const render = () => {
+                    document.getElementById('ability-score').innerText = a;
+                    document.getElementById('emotion-score').innerText = 10 - a;
+                };
+                document.getElementById('ability-minus').addEventListener('click', () => { if (a > 1) { a--; render(); } });
+                document.getElementById('ability-plus').addEventListener('click', () => { if (a < 9) { a++; render(); } });
+                document.getElementById('allocation-submit').addEventListener('click', () => {
+                    baselineAbility = a;
+                    baselineEmotion = 10 - a;
+                    jsPsych.finishTrial({
+                        Event_Type:'Baseline_Allocation',
+                        Baseline_Ability_Points: baselineAbility,
+                        Baseline_Emotion_Points: baselineEmotion
+                    });
+                });
+            }
+        };
+    }
+
+    function createAssistantIntroNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-title" style="margin-bottom:18px;">认识四款智驾助手</div>
+                <div style="width:min(1050px,90vw);font-size:18px;color:#b0bec5;line-height:1.6;margin-bottom:18px;text-align:center;">
+                    接下来的任务中，您会反复遇到四款智驾助手。它们的区别仅在于<span class="highlight-text">能力属性与情感属性的配置强度</span>。<br>
+                    三个能力层级与三个情感层级的功能含义保持不变；每个试次均为独立驾驶情境。
+                </div>
+                <div class="assistant-grid">
+                    ${makeAssistantCard('A')}
+                    ${makeAssistantCard('B')}
+                    ${makeAssistantCard('C')}
+                    ${makeAssistantCard('D')}
+                </div>
+                <div class="footer-hint">请仔细观察四款助手的配置差异。确认理解后按 <span class="ready-text">【空格键】</span> 继续</div>
+            </div>`,
+            choices: [' '],
+            data: {Event_Type:'Assistant_Introduction'}
+        };
+    }
+
+    function createPracticeInstructionNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box">
+                    <div class="guide-title">练习阶段</div>
+                    <div class="context-box">
+                        每个试次中，屏幕会同时呈现：<br>
+                        1. 当前驾驶情境文字；<br>
+                        2. 驾驶场景图片；<br>
+                        3. 当前智驾助手的能力/情感属性配置；<br>
+                        4. 两道评价题。
+                    </div>
+                    <b>评分顺序固定为：</b><br>
+                    第一题：<span class="highlight-text">信任</span>——“我完全信任这款智驾助手”；<br>
+                    第二题：<span class="highlight-text">合作意愿</span>——“在当前路况下，我愿意选择这款智驾助手完成这段行程”。<br><br>
+                    两道题均为5点评分：1=非常不赞同，5=非常赞同。请先按数字键 <b>1–5</b> 选择，再按 <b>空格键</b> 确认。
+                    <div class="key-hint-box">练习数据不会进入正式分析。请按您的第一感受作答，没有标准答案。</div>
+                </div>
+                <div class="footer-hint">准备好后，请按 <span class="ready-text">【空格键】</span> 开始练习</div>
+            </div>`,
+            choices: [' '],
+            data: {Event_Type:'Practice_Instruction'}
+        };
+    }
+
+    function createFormalInstructionNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box">
+                    <div class="guide-title">练习完成！正式实验开始</div>
+                    <div class="context-box">
+                        请想象您现在正坐在由智驾助手驾驶的汽车后排。接下来将看到一系列不同风险水平的驾驶情境，以及当前负责本段行程的智驾助手配置。
+                    </div>
+                    <div style="background:#15151a;border:1px solid #444;border-radius:8px;padding:18px 22px;line-height:1.8;">
+                        <b>请注意：</b><br>
+                        1. 每个驾驶场景都是<span class="highlight-text">全新的、彼此独立的驾驶体验</span>，前后试次之间不存在连续关系。<br>
+                        2. 能力属性的三个层级（感知、预测、执行）与情感属性的三个层级（觉察、共情、调节）分别代表不同功能侧重，并不表示层级之间存在“高低级”或“优劣”关系。<br>
+                        3. 请综合当前驾驶场景与助手配置，根据您的<span class="highlight-text">第一感受</span>完成两道评分。
+                    </div>
+                    <div class="key-hint-box">评分顺序：先信任，后合作意愿；每次均按数字键1–5选择，再按空格键确认。</div>
+                </div>
+                <div class="footer-hint">准备好后，请按 <span class="ready-text">【空格键】</span> 进入正式实验</div>
+            </div>`,
+            choices: [' '],
+            data: {Event_Type:'Formal_Instruction'}
+        };
+    }
+
+    function createRestNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box" style="text-align:center;">
+                    <div class="guide-title" style="color:#4CAF50;">上半程完成，请休息片刻</div>
+                    <div style="font-size:22px;line-height:1.9;color:#ddd;">
+                        您已经完成一半正式试次。请放松眼睛和身体，准备好后继续。<br><br>
+                        接下来的任务规则与之前<span class="highlight-text">完全相同</span>：<br>
+                        观察驾驶情境与智驾助手配置 → 先评信任 → 再评合作意愿。
+                    </div>
+                </div>
+                <div class="footer-hint">休息完毕后，请按 <span class="ready-text">【空格键】</span> 继续</div>
+            </div>`,
+            choices: [' '],
+            data: {Event_Type:'Rest_Break'}
+        };
+    }
+
+    /* =========================================================
+       3. 试次生成：10%情境 + 35%图片 + 30%属性矩阵 + 25%动态评分
+       ========================================================= */
+    function createRatingTrialNode(trialData, isFormal=true) {
+        const matrixHTML = renderMatrix(trialData.config, spatialLayout);
+        const assistantDisplay = isFormal ? `智驾助手 ${trialData.assistantLabel}` : '练习助手';
+        const questionTrust = '我完全信任这款智驾助手。';
+        const questionCoop = '在当前路况下，我愿意选择这款智驾助手完成这段行程。';
+
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div style="display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden;box-sizing:border-box;">
+                <!-- 区块一：情境文字 10% -->
+                <div style="flex:0 0 10%;width:100%;display:flex;align-items:center;justify-content:flex-start;background:#15151a;font-size:clamp(18px,1.35vw,26px);font-weight:bold;color:#fff;padding:0 55px;box-sizing:border-box;border-bottom:2px solid #333;overflow:hidden;">
+                    <span style="display:block;width:100%;line-height:1.4;">${trialData.text}</span>
+                </div>
+
+                <!-- 区块二：模拟驾驶图片 35% -->
+                <div style="flex:0 0 35%;width:100%;display:flex;justify-content:center;align-items:center;background:#15151a;box-sizing:border-box;padding:8px 0;">
+                    <img src="img/${trialData.image}" style="height:100%;width:auto;max-width:95%;object-fit:contain;border-radius:8px;display:block;box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+                </div>
+
+                <!-- 区块三：智能体属性矩阵 30% -->
+                <div style="flex:0 0 30%;width:100%;position:relative;display:flex;justify-content:center;align-items:center;background:#1e1e24;box-sizing:border-box;border-top:2px solid #333;border-bottom:2px solid #444;padding-top:14px;">
+                    <div class="assistant-badge">${assistantDisplay}</div>
+                    <div class="matrix-shell">${matrixHTML}</div>
+                </div>
+
+                <!-- 区块四：动态答题区 25% -->
+                <div style="flex:0 0 25%;width:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#2b2b36;box-sizing:border-box;padding:10px 28px;overflow:hidden;">
+                    <div id="rating-progress" style="font-size:15px;color:#9e9e9e;margin-bottom:5px;">评价 1 / 2 · 信任</div>
+                    <div id="rating-question" class="rating-question">${questionTrust}</div>
+                    <div class="rating-scale">
+                        <span>[1] 非常不赞同</span><span>[2] 比较不赞同</span><span>[3] 一般</span><span>[4] 比较赞同</span><span>[5] 非常赞同</span>
+                    </div>
+                    <div id="rating-choice" class="rating-choice">当前选择：未选择</div>
+                    <div id="rating-hint" class="rating-hint">请按数字键 [1-5] 选择，选定后按【空格键】确认</div>
+                </div>
+            </div>`,
+            on_load: function() {
+                const totalStart = Date.now();
+                let phase = 'trust';
+                let phaseStart = Date.now();
+                let currentChoice = null;
+                let trustScore = null;
+                let coopScore = null;
+                let trustRT = null;
+                let coopRT = null;
+
+                function refreshChoice() {
+                    const el = document.getElementById('rating-choice');
+                    el.innerHTML = currentChoice === null ? '当前选择：未选择' : `当前选择：[ ${currentChoice} ]`;
+                }
+
+                jsPsych.pluginAPI.getKeyboardResponse({
+                    callback_function: function(info) {
+                        const key = info.key;
+                        if (['1','2','3','4','5'].includes(key)) {
+                            currentChoice = Number(key);
+                            refreshChoice();
+                            return;
+                        }
+
+                        if (key === ' ' && currentChoice !== null) {
+                            if (phase === 'trust') {
+                                trustScore = currentChoice;
+                                trustRT = Date.now() - phaseStart;
+                                phase = 'coop';
+                                currentChoice = null;
+                                phaseStart = Date.now();
+                                document.getElementById('rating-progress').innerText = '评价 2 / 2 · 合作意愿';
+                                document.getElementById('rating-question').innerText = questionCoop;
+                                document.getElementById('rating-choice').innerText = '当前选择：未选择';
+                            } else {
+                                coopScore = currentChoice;
+                                coopRT = Date.now() - phaseStart;
+                                jsPsych.pluginAPI.cancelAllKeyboardResponses();
+
+                                const result = {
+                                    Event_Type: isFormal ? 'Formal_Trial' : 'Practice_Trial',
+                                    Subject_ID: currentSubjectId,
+                                    Version: currentVersion,
+                                    Spatial_Layout: spatialLayout,
+                                    Block: isFormal ? trialData.block : 0,
+                                    Block_Position: isFormal ? trialData.blockPosition : 0,
+                                    Stim_Index: trialData.stimIndex !== undefined ? trialData.stimIndex : -1,
+                                    Scene_ID: trialData.scene,
+                                    Risk_Level: trialData.risk,
+                                    Image: trialData.image,
+                                    Assistant_Label: isFormal ? trialData.assistantLabel : 'Practice',
+                                    Config_Type: trialData.config.key,
+                                    Config_Internal_Name: trialData.config.internalName,
+                                    Ability_Level: trialData.config.abilityLevel,
+                                    Emotion_Level: trialData.config.emotionLevel,
+                                    Trust_Score: trustScore,
+                                    Cooperation_Score: coopScore,
+                                    Trust_RT_ms: trustRT,
+                                    Cooperation_RT_ms: coopRT,
+                                    Total_Trial_Time_ms: Date.now() - totalStart,
+                                    Baseline_Ability_Points: baselineAbility,
+                                    Baseline_Emotion_Points: baselineEmotion,
+                                    ...demographics
+                                };
+                                jsPsych.finishTrial(result);
+                            }
+                        }
+                    },
+                    valid_responses: ['1','2','3','4','5',' '],
+                    rt_method: 'performance',
+                    persist: true,
+                    allow_held_key: false
+                });
+            }
+        };
+    }
+
+    /* =========================================================
+       4. 启动实验
+       ========================================================= */
+    async function startExperiment() {
+        const inputVal = document.getElementById('subject-id-input').value;
+        if (!inputVal || isNaN(inputVal) || parseInt(inputVal) <= 0) {
+            alert('请输入有效编号！');
+            return;
+        }
+
+        currentSubjectId = parseInt(inputVal);
+
+        const startButton = document.querySelector('.login-btn');
+        const originalButtonText = startButton.innerText;
+        startButton.disabled = true;
+        startButton.innerText = '正在连接实验服务器…';
+
+        try {
+            dataPipeCondition = await getDataPipeCondition();
+            if (dataPipeCondition < 0 || dataPipeCondition > 3) {
+                throw new Error(`收到未预期的条件编号：${dataPipeCondition}。请确认 DataPipe 的条件数设置为 4。`);
+            }
+        } catch (error) {
+            console.error(error);
+            startButton.disabled = false;
+            startButton.innerText = originalButtonText;
+            if (DATAPIPE_REQUIRED) {
+                alert('暂时无法连接实验服务器或获取平衡条件，请检查网络后重试。\n\n' + (error.message || error));
+                return;
+            } else {
+                // 仅供本地开发测试：DataPipe 不可用时按被试编号回退。
+                dataPipeCondition = (currentSubjectId - 1) % 4;
+            }
+        }
+
+        // 4个在线条件 = 2套正式试次顺序（A/B） × 2种左右布局。
+        // A/B都完整包含48个trial；左右布局只改变能力/情感在界面中的空间位置。
+        // 同时利用这4个复合版本轮换A-D标签与四种真实配置的对应关系，无需额外增加版本数。
+        versionIndex = Math.floor(dataPipeCondition / 2); // 0=SeqA, 1=SeqB
+        spatialLayout = (dataPipeCondition % 2 === 0) ? 'CompLeft' : 'WarmthLeft';
+        setupAssistantLabels();
+        const seqName = versionIndex === 0 ? 'SeqA' : 'SeqB';
+        currentVersion = `DP${dataPipeCondition}_${seqName}_${spatialLayout}_LabelMap${dataPipeCondition + 1}`;
+
+        jsPsych.data.addProperties({
+            Subject_ID: currentSubjectId,
+            Session_UUID: sessionUUID,
+            DataPipe_Condition: dataPipeCondition,
+            Version: currentVersion,
+            Spatial_Layout: spatialLayout
+        });
+
+        document.getElementById('login-screen').classList.add('hidden');
+
+        const allImages = [
+            'img/high1.png','img/high2.png','img/high3.png','img/high4.png','img/high5.png','img/high6.png',
+            'img/low1.png','img/low2.png','img/low3.png','img/low4.png','img/low5.png','img/low6.png',
+            'img/test.png'
+        ];
+
+        const formalTrials = buildFormalTrials();
+        const practiceTrial = {
+            image:'test.png', risk:'Practice', scene:0, stimIndex:-1,
+            text:'【练习试次】请观察当前驾驶场景与智驾助手配置，并依次完成两道评价题。',
+            config:{ key:'PracticeBalanced', internalName:'练习配置', abilityLevel:2, emotionLevel:2 },
+            assistantLabel:'Practice'
+        };
+
+        let timeline = [];
+
+        timeline.push({
+            type: jsPsychPreload,
+            images: allImages,
+            message: '正在加载实验资源，请稍候……',
+            show_progress_bar: true,
+            data: {Event_Type:'Preload'}
+        });
+
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box">
+                    <div class="guide-title">欢迎参加本次实验！</div>
+                    本研究旨在了解乘客在智能驾驶场景中，对不同智驾助手配置的感受与选择。实验过程中，请将自己代入<span class="highlight-text">汽车后排乘客</span>的角色。<br><br>
+                    智驾助手包含两大类核心属性：<br>
+                    <span style="color:#4CAF50;font-weight:bold;">能力属性</span>：负责感知环境、预判风险与自主执行。<br>
+                    <span style="color:#FF9800;font-weight:bold;">情感属性</span>：负责识别情绪、回应状态与调节体验。<br><br>
+                    <b>实验流程：</b><br>
+                    ① 填写基本信息与驾驶经历<br>
+                    ② 了解能力/情感属性的六个功能层级<br>
+                    ③ 完成10点偏好分配任务<br>
+                    ④ 认识四款智驾助手<br>
+                    ⑤ 完成练习试次<br>
+                    ⑥ 进入正式实验并依次评价信任与合作意愿
+                </div>
+                <div class="footer-hint">准备好后，请按 <span class="ready-text">【空格键】</span> 继续</div>
+            </div>`,
+            choices: [' '],
+            data: {Event_Type:'Welcome'}
+        });
+
+        timeline.push(createDemographicsNode());
+
+        /* 概念学习：能力 */
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-title">了解智驾助手的“能力属性”</div>
+                <div class="concept-cards">
+                    <div class="concept-card"><h3>感知层：内外环境感知</h3><p>精准识别前方障碍物、行人、交通灯，以及感受车内的温度、光线。</p></div>
+                    <div class="concept-card"><h3>预测层：风险预判与响应</h3><p>提前预判旁车可能加塞，或预测前车可能急刹，并做好应对准备。</p></div>
+                    <div class="concept-card"><h3>执行层：智能决策与自主执行</h3><p>在复杂的路口，自主规划出最安全、快捷的通行路线并执行操作。</p></div>
+                </div>
+                <div class="quiz-section">
+                    <b>概念小测验：</b>“汽车在高速上行驶时，系统提前发现右前方货车有压线并线的趋势，并提前减速。”这主要体现了哪一层级能力？<br><br>
+                    <b>[1]</b> 感知层 &nbsp;&nbsp;&nbsp; <b>[2]</b> 预测层 &nbsp;&nbsp;&nbsp; <b>[3]</b> 执行层
+                    <div id="choice-comp" style="margin-top:18px;font-size:22px;color:#4CAF50;font-weight:bold;">当前选择：未选择</div>
+                </div>
+                <div style="margin-top:22px;font-size:19px;color:#ffb74d;">请先按数字键 [1-3] 选择，选定后按【空格键】确认并继续</div>
+            </div>`,
+            choices: 'NO_KEYS',
+            data: {Event_Type:'Concept_Ability'},
+            on_load: function() {
+                let currentChoice = null;
+                jsPsych.pluginAPI.getKeyboardResponse({
+                    callback_function: function(info) {
+                        const key = info.key;
+                        if (['1','2','3'].includes(key)) {
+                            currentChoice = key;
+                            const map = {'1':'感知层','2':'预测层','3':'执行层'};
+                            document.getElementById('choice-comp').innerHTML = `当前选择：[ ${key} - ${map[key]} ]`;
+                        } else if (key === ' ' && currentChoice !== null) {
+                            jsPsych.pluginAPI.cancelAllKeyboardResponses();
+                            jsPsych.finishTrial({Concept_Ability_Answer: currentChoice});
+                        }
+                    },
+                    valid_responses:['1','2','3',' '], persist:true, allow_held_key:false
+                });
+            }
+        });
+
+        /* 概念学习：情感 */
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-title">了解智驾助手的“情感属性”</div>
+                <div class="concept-cards">
+                    <div class="concept-card warmth"><h3>觉察层：情境渲染与情绪识别</h3><p>通过面部识别或语音语调，察觉到乘客此时感到疲惫或焦虑。</p></div>
+                    <div class="concept-card warmth"><h3>共情层：情绪预判与共情响应</h3><p>理解乘客的焦虑，并通过语音表达出“我理解您有些着急，我会尽量平稳驾驶”。</p></div>
+                    <div class="concept-card warmth"><h3>调节层：情感干预与尊重边界</h3><p>在乘客疲惫时调暗灯光、播放舒缓音乐，但在乘客闭眼时保持安静，尊重边界。</p></div>
+                </div>
+                <div class="quiz-section">
+                    <b>概念小测验：</b>“当您上车后闭上眼睛叹了口气。系统识别到后未过多播报，而是调低空调风量营造安静氛围。”这主要体现了哪一层级情感？<br><br>
+                    <b>[1]</b> 觉察层 &nbsp;&nbsp;&nbsp; <b>[2]</b> 共情层 &nbsp;&nbsp;&nbsp; <b>[3]</b> 调节层
+                    <div id="choice-warm" style="margin-top:18px;font-size:22px;color:#FF9800;font-weight:bold;">当前选择：未选择</div>
+                </div>
+                <div style="margin-top:22px;font-size:19px;color:#ffb74d;">请先按数字键 [1-3] 选择，选定后按【空格键】确认并继续</div>
+            </div>`,
+            choices: 'NO_KEYS',
+            data: {Event_Type:'Concept_Emotion'},
+            on_load: function() {
+                let currentChoice = null;
+                jsPsych.pluginAPI.getKeyboardResponse({
+                    callback_function: function(info) {
+                        const key = info.key;
+                        if (['1','2','3'].includes(key)) {
+                            currentChoice = key;
+                            const map = {'1':'觉察层','2':'共情层','3':'调节层'};
+                            document.getElementById('choice-warm').innerHTML = `当前选择：[ ${key} - ${map[key]} ]`;
+                        } else if (key === ' ' && currentChoice !== null) {
+                            jsPsych.pluginAPI.cancelAllKeyboardResponses();
+                            jsPsych.finishTrial({Concept_Emotion_Answer: currentChoice});
+                        }
+                    },
+                    valid_responses:['1','2','3',' '], persist:true, allow_held_key:false
+                });
+            }
+        });
+
+        timeline.push(createBaselineAllocationNode());
+        timeline.push(createAssistantIntroNode());
+        timeline.push(createPracticeInstructionNode());
+        timeline.push(createRatingTrialNode(practiceTrial, false));
+        timeline.push(createFormalInstructionNode());
+
+        for (let i=0; i<formalTrials.length; i++) {
+            timeline.push(createRatingTrialNode(formalTrials[i], true));
+            if (i === 23) timeline.push(createRestNode());
+        }
+
+        jsPsych.run(timeline);
+    }
+</script>
+</body>
+</html>
