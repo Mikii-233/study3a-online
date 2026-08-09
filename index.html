@@ -6,6 +6,7 @@
     <title>智能驾驶场景评价实验</title>
     <script src="jspsych/jspsych.js"></script>
     <script src="plugins/plugin-html-keyboard-response.js"></script>
+    <script src="plugins/plugin-preload.js"></script>
     <link rel="stylesheet" href="jspsych/jspsych.css">
 
     <style>
@@ -102,6 +103,9 @@
             text-align: left;
             box-sizing: border-box;
         }
+        .guide-box.center-guide { text-align: center; }
+        .guide-box.center-guide .context-box { text-align: center; }
+        .guide-box.center-guide .guide-rules { text-align: center; }
         .guide-title {
             font-size: 34px;
             color: #64b5f6;
@@ -388,6 +392,9 @@
             box-shadow:0 0 7px rgba(100,181,246,.28);
         }
         .assistant-note { color:#aeb7c2; font-size:15px; line-height:1.55; margin-top:10px; text-align:center; }
+        .assistant-profile { color:#ffcf8a; font-size:16px; line-height:1.4; margin:2px 0 12px; text-align:center; font-weight:bold; }
+        .rating-back { position:absolute; top:5px; right:10px; border:1px solid #666; border-radius:7px; background:#1f2028; color:#c8d2dc; padding:4px 9px; font-size:12px; cursor:pointer; }
+        .rating-back.hidden { display:none; }
         .rating-options {
             display:grid;
             grid-template-columns:repeat(5, 1fr);
@@ -532,8 +539,8 @@
             .concept-cards {
                 width: 92vw;
                 flex-direction: column;
-                gap: 12px;
-                margin-bottom: 10px;
+                gap: 19px;
+                margin-bottom: 12px;
                 max-height: none;
                 overflow: visible;
             }
@@ -653,14 +660,14 @@
                 object-fit: contain !important;
             }
             .trial-shell > div:nth-child(3) {
-                flex: 0 0 34% !important;
-                min-height: 205px;
+                flex: 0 0 35% !important;
+                min-height: 212px;
                 padding: 6px 0 3px !important;
             }
             .trial-shell > div:nth-child(4) {
-                flex: 1 0 26% !important;
-                min-height: 176px;
-                padding: 20px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+                flex: 1 0 25% !important;
+                min-height: 164px;
+                padding: 18px 8px calc(5px + env(safe-area-inset-bottom)) !important;
                 overflow: visible !important;
                 justify-content: center !important;
             }
@@ -671,9 +678,9 @@
                 text-overflow: ellipsis;
                 font-size: 12px;
                 padding: 4px 10px;
-                margin: 0 0 7px;
+                margin: 0 0 11px;
             }
-            .matrix-shell { width:100%; }
+            .matrix-shell { width:100%; margin-top:4px; }
             .panel-title { font-size:15px; margin-bottom:4px; letter-spacing:1px; }
             .attr-group { margin-bottom:4px; }
             .attr-name { font-size:11.5px; margin-bottom:3px; }
@@ -688,7 +695,7 @@
                 white-space: nowrap;
             }
             .rating-question.long-question {
-                font-size: clamp(11.5px, 3.2vw, 13.5px);
+                font-size: clamp(10.5px, 2.85vw, 12.5px);
                 white-space: nowrap;
             }
             .rating-options {
@@ -729,7 +736,6 @@
             <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
             <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
             <button class="login-btn" onclick="startExperiment()">进入体验</button>
-            <div id="preload-status" class="device-note">正在准备驾驶场景资源…</div>
         </div>
     </div>
 
@@ -802,7 +808,7 @@
         'Subject_ID','DataPipe_Condition','Sequence','Spatial_Layout','Formal_Trial_Order',
         'Block','Block_Position','Image_Number','Image_ID','Image_File','Scene_ID','Risk_Level',
         'Assistant_Label','Config_Code','Config_Type','Config_Name_CN','Ability_Level','Emotion_Level',
-        'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Total_Trial_Time_ms',
+        'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Back_to_Q1_Count','Total_Trial_Time_ms',
         'Baseline_Ability_Points','Baseline_Emotion_Points'
     ];
 
@@ -866,54 +872,13 @@
     const txt6 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆即将抵达目的地，准备寻找合适的空车位停车…";
     const sceneText = {1: txt1, 2: txt2, 3: txt3, 4: txt4, 5: txt5, 6: txt6};
 
-    /* 手机端优先：页面一打开就提前缓存全部驾驶图片。
-       被试填写编号时，图片已经在后台加载；进入任务前会再次确认资源是否准备完成。 */
+    /* 正式材料列表。资源加载交由 jsPsychPreload 插件统一完成，
+       避免手机打开首页时同时并发加载全部大图而拖慢页面。 */
     const ALL_IMAGES = [
         'img/high1.png','img/high2.png','img/high3.png','img/high4.png','img/high5.png','img/high6.png',
         'img/low1.png','img/low2.png','img/low3.png','img/low4.png','img/low5.png','img/low6.png',
         'img/test.png'
     ];
-
-    let earlyPreloadPromise = null;
-
-    function preloadOneImage(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = async () => {
-                try {
-                    if (img.decode) await img.decode().catch(() => {});
-                } finally {
-                    resolve(src);
-                }
-            };
-            img.onerror = () => reject(new Error(`图片加载失败：${src}`));
-            img.src = src;
-        });
-    }
-
-    function beginEarlyPreload() {
-        if (earlyPreloadPromise) return earlyPreloadPromise;
-        const status = document.getElementById('preload-status');
-        earlyPreloadPromise = Promise.all(ALL_IMAGES.map(preloadOneImage))
-            .then(() => {
-                if (status) {
-                    status.textContent = '驾驶场景资源已准备好';
-                    status.style.color = '#7fcf86';
-                }
-                return true;
-            })
-            .catch(error => {
-                console.error('Early preload failed:', error);
-                if (status) {
-                    status.textContent = '部分资源仍在准备中，进入后会继续加载';
-                    status.style.color = '#ffb74d';
-                }
-                throw error;
-            });
-        return earlyPreloadPromise;
-    }
-
-    document.addEventListener('DOMContentLoaded', beginEarlyPreload);
 
     /* 四种实验条件。level=1/2/3分别表示该大类属性的低/中/高配置。
        正式界面中，三个能力层级共享abilityLevel，三个情感层级共享emotionLevel。 */
@@ -1070,19 +1035,19 @@
 
     function makeAssistantCard(label) {
         const cfg = assistantLabelMap[label];
+        const profile = `${levelText(cfg.abilityLevel).replace('水平','')}能力属性 — ${levelText(cfg.emotionLevel).replace('水平','')}情感属性`;
         return `
             <div class="assistant-card">
                 <div class="assistant-card-title">智驾助手 ${label}</div>
+                <div class="assistant-profile">${profile}</div>
                 <div class="mini-dim-row">
                     <div class="mini-dim-label" style="color:#4CAF50;">能力属性</div>
                     <div class="mini-bars">${makeBars(cfg.abilityLevel,'comp',true)}</div>
                 </div>
-                <div class="assistant-note">${cfg.abilityLevel}格 · ${levelText(cfg.abilityLevel)}</div>
-                <div class="mini-dim-row" style="margin-top:14px;">
+                <div class="mini-dim-row">
                     <div class="mini-dim-label" style="color:#FF9800;">情感属性</div>
                     <div class="mini-bars">${makeBars(cfg.emotionLevel,'warm',true)}</div>
                 </div>
-                <div class="assistant-note">${cfg.emotionLevel}格 · ${levelText(cfg.emotionLevel)}</div>
             </div>`;
     }
 
@@ -1096,11 +1061,12 @@
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container">
-                <div class="guide-box" style="width:min(900px,90vw);">
+                <div class="guide-box center-guide" style="width:min(900px,90vw);">
                     <div class="guide-title">点数分配任务</div>
                     <div class="context-box">
-                        现在有一款智驾助手，它的<span class="highlight-text">能力属性</span>和<span class="highlight-text">情感属性</span>目前处于相同的基本水平。为了提升之后的驾驶体验，您现在可以为它分配 <span class="highlight-text">10 个额外升级点</span>。请按照自己的偏好，决定两类属性分别获得多少点。
+                        现在有一款智驾助手，它的<span class="highlight-text">能力属性</span>和<span class="highlight-text">情感属性</span>目前处于相同的基本水平。为了进一步提升驾驶体验，您现在拥有一次升级机会，可以为两类属性分配 <span class="highlight-text">10 个额外升级点</span>。请按照自己的偏好决定如何分配。
                     </div>
+                    <div style="text-align:center;color:#ffcf8a;font-size:16px;font-weight:bold;line-height:1.55;margin-bottom:8px;">本任务只用于了解您对两类功能的个人偏好，不会影响后续实验。</div>
                     <div style="text-align:center;color:#b0bec5;font-size:17px;">两类属性都至少保留1点；两边加起来始终为10点。</div>
                     <div class="allocation-wrap">
                         <div class="allocation-card comp">
@@ -1149,18 +1115,18 @@
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container" style="justify-content:flex-start;">
-                <div class="guide-title" style="margin-bottom:12px;">认识能量条与四款智驾助手</div>
+                <div class="guide-title" style="margin-bottom:12px;">了解能量条和四款智驾助手</div>
                 <div class="level-legend">
-                    <div style="text-align:center;margin-bottom:8px;">能量条表示智驾助手在这类功能上的水平：</div>
+                    <div style="text-align:center;margin-bottom:8px;font-weight:bold;">能量条越多，表示对应功能水平越高：</div>
                     <div class="legend-levels">
                         <div class="legend-level">${legendBars(1)}<b>低水平</b></div>
                         <div class="legend-level">${legendBars(2)}<b>标准水平</b></div>
                         <div class="legend-level">${legendBars(3)}<b>高水平</b></div>
                     </div>
-                    <div style="margin-top:9px;text-align:center;color:#ffcf8a;font-weight:bold;">感知、预测、执行、觉察、共情、调节六项功能之间没有高低之分。</div>
+                    <div style="margin-top:9px;text-align:center;color:#ffcf8a;font-weight:bold;">六项功能之间没有高低之分。</div>
                 </div>
                 <div style="width:min(1080px,92vw);font-size:17px;color:#e0e0e0;line-height:1.5;margin-bottom:11px;text-align:center;font-weight:bold;">
-                    下面请介绍和了解四款智驾助手
+                    请了解下面四款智驾助手
                 </div>
                 <div class="assistant-grid">
                     ${makeAssistantCard('A')}
@@ -1187,14 +1153,14 @@
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container">
-                <div class="guide-box">
+                <div class="guide-box center-guide">
                     <div class="guide-title">先熟悉一下操作</div>
                     <div class="context-box">
-                        接下来的练习页面与正式体验的<span class="highlight-text">排版和操作方式完全一致</span>。练习只是帮助您熟悉如何查看道路场景、智驾助手信息并完成评价。
+                        接下来的练习页面与正式体验的<span class="highlight-text">排版和操作方式完全一致</span>。练习只用于帮助您熟悉页面和操作。
                     </div>
                     <div style="background:#15151a;border:1px solid #444;border-radius:8px;padding:16px 20px;line-height:1.75;">
-                        每个场景后会连续出现两道评价题。请<span class="highlight-text">直接点击一个数字完成选择</span>，再点击<span class="highlight-text">“确认并继续”</span>进入下一题。<br>
-                        <span style="color:#9e9e9e;font-size:15px;">练习只用于熟悉操作，不计入正式结果。</span>
+                        每个场景后会连续出现两道评价题。<span class="highlight-text">先点击数字选择答案，再点击“确认并继续”</span>进入下一题。<br>
+                        <span style="color:#9e9e9e;font-size:15px;">练习内容不计入正式结果。</span>
                     </div>
                 </div>
                 <div style="margin-top:20px;"><button id="practice-start" class="continue-btn">开始练习</button></div>
@@ -1213,15 +1179,18 @@
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container">
-                <div class="guide-box">
+                <div class="guide-box center-guide">
                     <div class="guide-title">正式体验即将开始</div>
                     <div class="context-box">
-                        请想象您现在是一名乘客，坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。接下来车辆会经过不同的道路场景，并由画面中显示的<span class="highlight-text">智驾助手负责当前路段的驾驶</span>。请结合眼前的路况和这款助手的功能水平，按照自己的真实感受完成评价。
+                        请想象您现在是一名乘客，正坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。车辆将经过不同道路，每一路段的<span class="highlight-text">智驾助手仅负责当前道路的驾驶</span>。请结合眼前的路况和助手表现，按照自己的第一感受完成评价。
                     </div>
-                    <div style="background:#15151a;border:1px solid #444;border-radius:8px;padding:17px 20px;line-height:1.75;">
-                        <div style="margin-bottom:9px;"><span class="highlight-text">① 每个驾驶场景都是一次独立的乘车体验</span>，前后场景互不关联；当前画面只对应眼前这款智驾助手。</div>
-                        <div style="margin-bottom:9px;"><span class="highlight-text">② 能量条只表示当前智驾助手的功能水平</span>；感知、预测、执行、觉察、共情、调节六项功能之间没有高低之分。</div>
-                        <div><span class="highlight-text">③ 每个场景后有两道评价题</span>，请根据第一感受作答；选择评分后，再点击“确认并继续”。</div>
+                    <div style="background:#3a2b1f;border:1px solid #8a6034;border-radius:8px;padding:13px 18px;line-height:1.6;margin-bottom:12px;color:#ffe0b2;font-weight:bold;">
+                        在本次体验设定中，<span class="highlight-text">无论功能水平如何，四款智驾助手都具备完整的安全驾驶能力，均能保障乘客安全</span>。
+                    </div>
+                    <div class="guide-rules" style="background:#15151a;border:1px solid #444;border-radius:8px;padding:17px 20px;line-height:1.75;">
+                        <div style="margin-bottom:9px;"><span class="highlight-text">① 每个道路场景都是一次独立的乘车体验</span>，前后场景互不关联；每个场景只对应画面中当前的智驾助手。</div>
+                        <div style="margin-bottom:9px;"><span class="highlight-text">② 能量条只表示当前智驾助手的功能水平</span>，六项功能之间没有高低之分。</div>
+                        <div><span class="highlight-text">③ 每个场景均有两道评价题</span>，请根据第一感受作答；选择答案后，再点击“确认并继续”。</div>
                     </div>
                 </div>
                 <div style="margin-top:20px;"><button id="formal-start" class="continue-btn">开始正式体验</button></div>
@@ -1262,7 +1231,7 @@
        ========================================================= */
     function createRatingTrialNode(trialData, isFormal=true) {
         const matrixHTML = renderMatrix(trialData.config, spatialLayout);
-        const assistantDisplay = isFormal ? `当前路段由智驾助手 ${trialData.assistantLabel} 负责驾驶` : '当前路段由练习助手负责驾驶';
+        const assistantDisplay = isFormal ? `本路段由智驾助手 ${trialData.assistantLabel} 负责驾驶` : '本路段由练习助手负责驾驶';
         const question1 = '我完全信任这款智驾助手';
         const question2 = '在当前路况下，我愿意选择这款智驾助手完成这段行程';
         const ratingButtons = [1,2,3,4,5].map(score => `<button class="rating-option" data-score="${score}">${score}</button>`).join('');
@@ -1287,6 +1256,7 @@
 
                 <div class="rating-zone" style="flex:0 0 25%;width:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#2b2b36;box-sizing:border-box;padding:20px 12px 6px;overflow:hidden;">
                     <div id="rating-progress" class="rating-progress">第 1 题 / 共 2 题</div>
+                    <button id="rating-back" class="rating-back hidden" type="button">返回上一题</button>
                     <div id="rating-question" class="rating-question">${question1}</div>
                     <div id="rating-options" class="rating-options">${ratingButtons}</div>
                     <div class="rating-anchors"><span>1 非常不赞同</span><span>3 一般</span><span>5 非常赞同</span></div>
@@ -1297,44 +1267,68 @@
                 const totalStart = Date.now();
                 let phase = 1;
                 let phaseStart = Date.now();
-                let currentChoice = null;
+                let trustDraft = null;
+                let coopDraft = null;
                 let trustScore = null;
                 let coopScore = null;
-                let trustRT = null;
-                let coopRT = null;
+                let trustRT = 0;
+                let coopRT = 0;
+                let backToQ1Count = 0;
 
                 const options = Array.from(document.querySelectorAll('.rating-option'));
                 const confirmBtn = document.getElementById('rating-confirm');
+                const backBtn = document.getElementById('rating-back');
+                const questionEl = document.getElementById('rating-question');
 
-                function clearSelection() {
-                    currentChoice = null;
-                    options.forEach(btn => btn.classList.remove('selected'));
-                    confirmBtn.disabled = true;
+                function renderSelection(value) {
+                    options.forEach(btn => btn.classList.toggle('selected', Number(btn.dataset.score) === value));
+                    confirmBtn.disabled = (value === null);
+                }
+
+                function showPhase(nextPhase) {
+                    phase = nextPhase;
+                    phaseStart = Date.now();
+                    if (phase === 1) {
+                        document.getElementById('rating-progress').innerText = '第 1 题 / 共 2 题';
+                        questionEl.innerText = question1;
+                        questionEl.classList.remove('long-question');
+                        backBtn.classList.add('hidden');
+                        renderSelection(trustDraft);
+                    } else {
+                        document.getElementById('rating-progress').innerText = '第 2 题 / 共 2 题';
+                        questionEl.innerText = question2;
+                        questionEl.classList.add('long-question');
+                        backBtn.classList.remove('hidden');
+                        renderSelection(coopDraft);
+                    }
                 }
 
                 options.forEach(btn => {
                     btn.addEventListener('click', function() {
-                        currentChoice = Number(this.dataset.score);
-                        options.forEach(x => x.classList.toggle('selected', x === this));
-                        confirmBtn.disabled = false;
+                        const score = Number(this.dataset.score);
+                        if (phase === 1) trustDraft = score;
+                        else coopDraft = score;
+                        renderSelection(score);
                     });
                 });
 
+                backBtn.addEventListener('click', function() {
+                    if (phase !== 2) return;
+                    coopRT += Date.now() - phaseStart;
+                    backToQ1Count++;
+                    showPhase(1);
+                });
+
                 confirmBtn.addEventListener('click', function() {
-                    if (currentChoice === null) return;
+                    if (phase === 1 && trustDraft === null) return;
+                    if (phase === 2 && coopDraft === null) return;
                     if (phase === 1) {
-                        trustScore = currentChoice;
-                        trustRT = Date.now() - phaseStart;
-                        phase = 2;
-                        phaseStart = Date.now();
-                        document.getElementById('rating-progress').innerText = '第 2 题 / 共 2 题';
-                        const questionEl = document.getElementById('rating-question');
-                        questionEl.innerText = question2;
-                        questionEl.classList.add('long-question');
-                        clearSelection();
+                        trustScore = trustDraft;
+                        trustRT += Date.now() - phaseStart;
+                        showPhase(2);
                     } else {
-                        coopScore = currentChoice;
-                        coopRT = Date.now() - phaseStart;
+                        coopScore = coopDraft;
+                        coopRT += Date.now() - phaseStart;
                         const imageBase = String(trialData.image || '').replace(/\.png$/i,'');
                         const numMatch = imageBase.match(/(\d+)$/);
                         const sceneNum = numMatch ? Number(numMatch[1]) : trialData.scene;
@@ -1365,6 +1359,7 @@
                             Trust_RT_ms: trustRT,
                             Cooperation_Score: coopScore,
                             Cooperation_RT_ms: coopRT,
+                            Back_to_Q1_Count: backToQ1Count,
                             Total_Trial_Time_ms: Date.now() - totalStart,
                             Baseline_Ability_Points: baselineAbility,
                             Baseline_Emotion_Points: baselineEmotion
@@ -1395,10 +1390,7 @@
         startButton.innerText = '正在准备体验…';
 
         try {
-            // 图片从网页打开时就已在后台预加载；点击进入时先确认资源完整，再申请平衡条件，避免加载失败占用版本序号。
-            await (earlyPreloadPromise || beginEarlyPreload()).catch(() => {
-                throw new Error('驾驶场景资源加载失败，请检查网络后重试。');
-            });
+            // 首页只加载网页本身；进入体验后由 jsPsychPreload 统一预加载全部驾驶图片。
             dataPipeCondition = await getDataPipeCondition();
             if (dataPipeCondition < 0 || dataPipeCondition > 3) {
                 throw new Error(`收到未预期的条件编号：${dataPipeCondition}。请确认 DataPipe 的条件数设置为 4。`);
@@ -1444,25 +1436,35 @@
 
         let timeline = [];
 
+        // 使用 jsPsych 官方 preload 插件，在欢迎页之前一次性加载全部正式场景材料。
+        timeline.push({
+            type: jsPsychPreload,
+            images: ALL_IMAGES,
+            message: '正在加载驾驶场景，请稍候……',
+            show_progress_bar: true,
+            continue_after_error: false,
+            data: {Event_Type:'Preload'}
+        });
+
         timeline.push({
             type: jsPsychHtmlKeyboardResponse,
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container">
-                <div class="guide-box">
+                <div class="guide-box center-guide">
                     <div class="guide-title">欢迎参加智驾乘车体验</div>
                     <div class="context-box">
-                        请想象您是一名乘客，坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。接下来您会体验不同的道路场景，并了解负责当前路段驾驶的智驾助手。请根据看到的路况和自己的乘坐感受完成评价。
+                        请想象您是一名乘客，正坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。接下来您会体验不同的道路场景，并了解负责当前路段驾驶的智驾助手。请根据看到的路况和自己的乘坐感受完成评价。
                     </div>
                     智驾助手包含两类主要功能：<br>
                     <span style="color:#4CAF50;font-weight:bold;">能力属性</span>：感知、预测和执行。<br>
                     <span style="color:#FF9800;font-weight:bold;">情感属性</span>：觉察、共情和调节。<br><br>
                     <b>本次体验包含五个环节：</b><br>
-                    ① 了解两类功能并完成简单理解题<br>
-                    ② 分配10个额外升级点<br>
-                    ③ 认识能量条和四款智驾助手<br>
-                    ④ 先完成一段练习<br>
-                    ⑤ 进入正式的道路体验与评价
+                    ① 了解和认识智驾助手的两类功能<br>
+                    ② 进行点数分配任务<br>
+                    ③ 了解能量条和四款智驾助手<br>
+                    ④ 完成练习环节<br>
+                    ⑤ 开始正式驾驶体验
                 </div>
                 <div style="margin-top:24px;"><button id="welcome-continue" class="continue-btn">开始实验</button></div>
             </div>`,
