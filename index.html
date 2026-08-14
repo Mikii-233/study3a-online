@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>智能驾驶体验</title>
-    <!-- build: 2026-08-14-jspsych-direct-image-no-preload -->
+    <!-- build: 2026-08-14-jspsych-rolling-preload-v2-formal-gate -->
     <script src="jspsych/jspsych.js"></script>
     <script src="plugins/plugin-html-keyboard-response.js"></script>
     <link rel="stylesheet" href="jspsych/jspsych.css">
@@ -769,16 +769,84 @@
             .trial-shell { min-height: 100dvh; height:auto; overflow-y:auto; }
         }
 
+
+        /* ===== 浏览器环境提示：微信内置浏览器不用于正式实验 ===== */
+        .wechat-blocker {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            box-sizing: border-box;
+            background: #1e1e24;
+            color: #fff;
+        }
+        .wechat-blocker-card {
+            width: min(720px, 94vw);
+            background: #2b2b36;
+            border: 1px solid #4a4a54;
+            border-radius: 16px;
+            padding: 28px 24px;
+            box-sizing: border-box;
+            line-height: 1.75;
+            text-align: left;
+        }
+        .wechat-blocker-title {
+            color: #ffb74d;
+            font-size: clamp(24px, 6vw, 34px);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .wechat-copy-btn {
+            display: block;
+            min-width: 180px;
+            min-height: 48px;
+            margin: 20px auto 0;
+            border: 0;
+            border-radius: 9px;
+            background: #64b5f6;
+            color: #111;
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .wechat-url {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #15151a;
+            color: #b0bec5;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
     </style>
 </head>
 <body>
+
+    <div id="wechat-blocker" class="wechat-blocker">
+        <div class="wechat-blocker-card">
+            <div class="wechat-blocker-title">请在系统浏览器中打开</div>
+            <div>
+                为保证驾驶场景加载和实验计时稳定，本实验不在微信内置浏览器中直接运行。<br><br>
+                <b>iPhone：</b>点击右上角“…” → 选择“在默认浏览器中打开”，建议使用 Safari。<br>
+                <b>Android：</b>点击右上角“…” → 选择“在浏览器打开”，建议使用 Chrome、Edge 或手机系统浏览器。<br><br>
+                也可以复制下方网址后粘贴到系统浏览器地址栏。
+            </div>
+            <button id="wechat-copy-btn" class="wechat-copy-btn" type="button">复制实验网址</button>
+            <div id="wechat-current-url" class="wechat-url"></div>
+        </div>
+    </div>
+
     <div id="login-screen" class="fullscreen-container">
         <div class="login-box">
             <div class="login-title">输入实验编号</div>
             <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
             <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
             <button class="login-btn" onclick="startExperiment()">进入体验</button>
-            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych direct image · no preload</div>
+            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych rolling preload v2 · formal gate</div>
         </div>
     </div>
 
@@ -852,6 +920,7 @@
         'Block','Block_Position','Image_Number','Image_ID','Image_File','Scene_ID','Risk_Level',
         'Assistant_Label','Config_Code','Config_Type','Config_Name_CN','Ability_Level','Emotion_Level',
         'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Back_to_Q1_Count','Total_Trial_Time_ms',
+        'Image_Preloaded_Before_Trial','Image_Wait_ms','Preload_Loaded_Count_At_Trial_Start',
         'Baseline_Ability_Points','Baseline_Emotion_Points'
     ];
 
@@ -988,6 +1057,158 @@
         }
     });
 
+    /* =========================================================
+       场景资源管理器：3 个滚动并发槽位
+       ---------------------------------------------------------
+       - 使用 jsPsych 官方 pluginAPI.preloadImages()
+       - 同时最多 3 张；任一完成后立即补下一张
+       - 不阻塞欢迎页/概念学习/点数分配等前半段流程
+       - test.png 优先；正式图片按该被试实际试次的首次出现顺序排队
+       ========================================================= */
+    const SCENE_PRELOAD_CONCURRENCY = 3;
+
+    const scenePreloader = (() => {
+        let queue = [];
+        let active = 0;
+        let running = false;
+        const loaded = new Set();
+        const loading = new Set();
+        const queued = new Set();
+        const failed = new Map();
+        const waiters = new Map();
+
+        function norm(file) {
+            const clean = String(file || '').replace(/^img\//, '').replace(/[^A-Za-z0-9_.-]/g, '');
+            return `img/${clean}`;
+        }
+
+        function loadedCount() { return loaded.size; }
+        function isLoaded(file) { return loaded.has(norm(file)); }
+        function isLoading(file) { return loading.has(norm(file)); }
+
+        function notifySuccess(file) {
+            const list = waiters.get(file) || [];
+            waiters.delete(file);
+            list.forEach(w => { try { w.ok(); } catch(e) { console.error(e); } });
+        }
+
+        function notifyFailure(file, error) {
+            const list = waiters.get(file) || [];
+            waiters.delete(file);
+            list.forEach(w => { try { if (w.fail) w.fail(error); } catch(e) { console.error(e); } });
+        }
+
+        function enqueue(files, front=false) {
+            const fresh = [];
+            files.forEach(raw => {
+                const file = norm(raw);
+                if (loaded.has(file) || loading.has(file) || queued.has(file)) return;
+                queued.add(file);
+                fresh.push(file);
+            });
+            if (front) queue = fresh.concat(queue);
+            else queue.push(...fresh);
+            if (running) pump();
+        }
+
+        function prioritize(file) {
+            file = norm(file);
+            if (loaded.has(file) || loading.has(file)) return;
+            queue = queue.filter(x => x !== file);
+            queued.delete(file);
+            queued.add(file);
+            queue.unshift(file);
+            if (running) pump();
+        }
+
+        function whenLoaded(file, ok, fail) {
+            file = norm(file);
+            if (loaded.has(file)) {
+                setTimeout(ok, 0);
+                return;
+            }
+            if (!waiters.has(file)) waiters.set(file, []);
+            waiters.get(file).push({ok, fail});
+            prioritize(file);
+        }
+
+        function markLoaded(file) {
+            file = norm(file);
+            if (loaded.has(file)) return;
+            loaded.add(file);
+            loading.delete(file);
+            queued.delete(file);
+            failed.delete(file);
+            notifySuccess(file);
+        }
+
+        function launch(file) {
+            active++;
+            loading.add(file);
+            queued.delete(file);
+            const startedAt = performance.now();
+
+            jsPsych.pluginAPI.preloadImages(
+                [file],
+                function() {
+                    active--;
+                    loading.delete(file);
+                    loaded.add(file);
+                    failed.delete(file);
+                    console.log(`[scene preload] loaded ${file} in ${((performance.now()-startedAt)/1000).toFixed(1)}s; ${loaded.size}/13`);
+                    notifySuccess(file);
+                    pump();
+                },
+                function() {},
+                function(errorInfo) {
+                    active--;
+                    loading.delete(file);
+                    const tries = (failed.get(file) || 0) + 1;
+                    failed.set(file, tries);
+                    console.warn('[scene preload] error', file, errorInfo, 'try', tries);
+
+                    // 网络错误时最多自动重试 2 次；正式 trial 仍有当前图片门控作为最后保障。
+                    if (tries <= 2) {
+                        setTimeout(() => {
+                            if (!loaded.has(file) && !loading.has(file)) {
+                                queued.add(file);
+                                queue.push(file);
+                                pump();
+                            }
+                        }, 1500);
+                    } else {
+                        notifyFailure(file, errorInfo);
+                        pump();
+                    }
+                }
+            );
+        }
+
+        function pump() {
+            if (!running) return;
+            while (active < SCENE_PRELOAD_CONCURRENCY && queue.length > 0) {
+                const file = queue.shift();
+                if (loaded.has(file) || loading.has(file)) {
+                    queued.delete(file);
+                    continue;
+                }
+                launch(file);
+            }
+        }
+
+        function start(files) {
+            running = true;
+            enqueue(files, false);
+            pump();
+        }
+
+        return {
+            start, enqueue, prioritize, whenLoaded, markLoaded,
+            isLoaded, isLoading, loadedCount,
+            normalize: norm
+        };
+    })();
+
     function rotateArray(arr, shift) {
         const n = arr.length;
         const s = ((shift % n) + n) % n;
@@ -1070,7 +1291,7 @@
 
     function makeAssistantCard(label) {
         const cfg = assistantLabelMap[label];
-        const profile = `${levelText(cfg.abilityLevel).replace('水平','')}能力属性 — ${levelText(cfg.emotionLevel).replace('水平','')}情感属性`;
+        const profile = `${levelText(cfg.abilityLevel).replace('水平','')}能力-${levelText(cfg.emotionLevel).replace('水平','')}情感`;
         return `
             <div class="assistant-card">
                 <div class="assistant-card-title">智驾助手 ${label}</div>
@@ -1158,7 +1379,6 @@
                         <div class="legend-level">${legendBars(2)}<b>标准水平</b></div>
                         <div class="legend-level">${legendBars(3)}<b>高水平</b></div>
                     </div>
-                    <div style="margin-top:9px;text-align:center;color:#ffcf8a;font-weight:bold;">六项功能之间没有高低之分。</div>
                 </div>
                 <div style="width:min(1080px,92vw);font-size:17px;color:#e0e0e0;line-height:1.5;margin-bottom:11px;text-align:center;font-weight:bold;">
                     请了解下面四款智驾助手
@@ -1170,7 +1390,7 @@
                     ${makeAssistantCard('D')}
                 </div>
                 <div style="width:min(1080px,92vw);text-align:center;margin:12px auto 0;color:#ffcf8a;font-size:15px;line-height:1.45;">
-                    请留意每款助手的<span style="color:#4CAF50;font-weight:bold;">能力属性</span>和<span style="color:#FF9800;font-weight:bold;">情感属性</span>分别处于什么水平。
+                    请留意每款助手的<span style="color:#4CAF50;font-weight:bold;">能力</span>和<span style="color:#FF9800;font-weight:bold;">情感</span>分别处于什么水平。
                 </div>
                 <div style="text-align:center;margin:15px 0 8px;"><button id="assistant-continue" class="continue-btn">继续</button></div>
             </div>`,
@@ -1202,6 +1422,115 @@
             data: {Event_Type:'Practice_Instruction'},
             on_load: function() {
                 document.getElementById('practice-start').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        };
+    }
+
+
+    /* =========================================================
+       正式实验资源门控
+       ---------------------------------------------------------
+       - 后台滚动预加载仍从实验前半段持续进行；
+       - 练习结束后检查 13 张场景图是否全部准备完成；
+       - 若已全部完成，本节点完全跳过，被试不会看到加载页；
+       - 若尚未完成，仅在此处显示统一进度页，全部完成后自动进入正式指导语。
+       ========================================================= */
+    function createFormalResourceGateNode(requiredImages) {
+        const files = requiredImages.map(scenePreloader.normalize);
+        const total = files.length;
+
+        const waitTrial = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box center-guide" style="width:min(820px,90vw);">
+                    <div class="guide-title">正式体验准备中</div>
+                    <div class="context-box" style="text-align:center;">
+                        为保证接下来的驾驶体验连续流畅，系统正在准备剩余的驾驶场景。<br>
+                        完成后将自动进入正式体验，请稍候。
+                    </div>
+                    <div style="width:min(620px,80vw);margin:24px auto 8px;height:14px;background:#15151a;border:1px solid #555;border-radius:999px;overflow:hidden;">
+                        <div id="formal-resource-bar" style="height:100%;width:0%;background:#4CAF50;transition:width .25s ease;"></div>
+                    </div>
+                    <div id="formal-resource-count" style="text-align:center;color:#e0e0e0;font-size:20px;font-weight:bold;margin-top:10px;">准备中…</div>
+                    <div id="formal-resource-note" style="text-align:center;color:#9e9e9e;font-size:14px;line-height:1.6;margin-top:12px;">
+                        请保持当前页面开启。
+                    </div>
+                </div>
+            </div>`,
+            data: {Event_Type:'Formal_Resource_Gate'},
+            on_load: function() {
+                const startedAt = Date.now();
+                const startLoaded = files.filter(f => scenePreloader.isLoaded(f)).length;
+                const bar = document.getElementById('formal-resource-bar');
+                const count = document.getElementById('formal-resource-count');
+                const note = document.getElementById('formal-resource-note');
+                let finished = false;
+                let retryTick = 0;
+
+                function missingFiles() {
+                    return files.filter(f => !scenePreloader.isLoaded(f));
+                }
+
+                function refresh() {
+                    if (finished) return;
+                    const missing = missingFiles();
+                    const ready = total - missing.length;
+                    const pct = total > 0 ? (ready / total) * 100 : 100;
+
+                    if (bar) bar.style.width = `${pct}%`;
+                    if (count) count.innerText = `驾驶场景已准备 ${ready} / ${total}`;
+
+                    const elapsed = Date.now() - startedAt;
+                    if (note && elapsed >= 60000) {
+                        note.innerText = '当前网络速度较慢，场景仍在继续准备，请保持页面开启。';
+                    }
+
+                    if (missing.length === 0) {
+                        finished = true;
+                        clearInterval(pollTimer);
+                        clearInterval(retryTimer);
+                        if (count) {
+                            count.innerHTML = '<span style="color:#4CAF50;">驾驶场景准备完成</span>';
+                        }
+                        if (note) note.innerText = '即将进入正式体验…';
+                        setTimeout(() => {
+                            jsPsych.finishTrial({
+                                Event_Type:'Formal_Resource_Gate',
+                                Resource_Gate_Wait_ms: Date.now() - startedAt,
+                                Resource_Gate_Start_Loaded_Count: startLoaded,
+                                Resource_Gate_End_Loaded_Count: total
+                            });
+                        }, 350);
+                    }
+                }
+
+                // 把尚未完成的图片再次置于队列前部；已加载/正在加载者不会重复请求。
+                scenePreloader.enqueue(missingFiles(), true);
+
+                const pollTimer = setInterval(refresh, 250);
+
+                // 长时间网络波动时，每15秒重新确认一次遗漏资源是否仍在队列中。
+                const retryTimer = setInterval(() => {
+                    retryTick++;
+                    const missing = missingFiles();
+                    if (missing.length > 0) {
+                        scenePreloader.enqueue(missing, true);
+                        if (retryTick % 4 === 0 && note) {
+                            note.innerText = '场景仍在准备中，请保持页面开启，完成后会自动继续。';
+                        }
+                    }
+                }, 15000);
+
+                refresh();
+            }
+        };
+
+        return {
+            timeline: [waitTrial],
+            conditional_function: function() {
+                return files.some(f => !scenePreloader.isLoaded(f));
             }
         };
     }
@@ -1270,8 +1599,8 @@
         const safeName = String(imageName || '').replace(/[^A-Za-z0-9_.-]/g, '');
         const src = `img/${safeName}`;
         return `<div class="scene-image-frame">
-                    <div id="scene-load-hint" class="scene-load-hint">驾驶场景加载中，请稍候…</div>
-                    <img id="scene-image" class="scene-image" src="${src}" alt="驾驶场景" decoding="async">
+                    <div id="scene-load-hint" class="scene-load-hint">正在准备当前驾驶场景，请稍候…</div>
+                    <img id="scene-image" class="scene-image" data-src="${src}" alt="驾驶场景" decoding="async">
                 </div>`;
     }
 
@@ -1280,7 +1609,9 @@
        ========================================================= */
     function createRatingTrialNode(trialData, isFormal=true) {
         const matrixHTML = renderMatrix(trialData.config, spatialLayout);
-        const assistantDisplay = isFormal ? `本路段由智驾助手 ${trialData.assistantLabel} 负责驾驶` : '本路段由练习助手负责驾驶';
+        const assistantDisplay = isFormal
+            ? `本路段由 <span style="color:#ffffff;font-weight:900;">智驾助手 ${trialData.assistantLabel}</span> 负责驾驶`
+            : `本路段由 <span style="color:#ffffff;font-weight:900;">练习助手</span> 负责驾驶`;
         const question1 = '我完全信任这款智驾助手';
         const question2 = '在当前路况下，我愿意选择这款智驾助手完成这段行程';
         const ratingButtons = [1,2,3,4,5].map(score => `<button class="rating-option" data-score="${score}" disabled>${score}</button>`).join('');
@@ -1313,9 +1644,9 @@
                 </div>
             </div>`,
             on_load: function() {
-                const totalStart = Date.now();
+                let totalStart = null;
                 let phase = 1;
-                let phaseStart = Date.now();
+                let phaseStart = null;
                 let trustDraft = null;
                 let coopDraft = null;
                 let trustScore = null;
@@ -1330,36 +1661,77 @@
                 const questionEl = document.getElementById('rating-question');
                 const sceneImg = document.getElementById('scene-image');
                 const sceneHint = document.getElementById('scene-load-hint');
+                const imagePath = sceneImg ? sceneImg.dataset.src : `img/${trialData.image}`;
+                const imagePreloadedBeforeTrial = scenePreloader.isLoaded(imagePath);
+                const preloadLoadedCountAtTrialStart = scenePreloader.loadedCount();
+                const imageWaitStartedAt = Date.now();
+                let imageWaitMs = null;
                 let sceneReady = false;
+                let slowHintTimer = null;
 
                 function enableRatingsAfterImage() {
                     if (sceneReady) return;
                     sceneReady = true;
+                    imageWaitMs = Date.now() - imageWaitStartedAt;
+                    totalStart = Date.now();
+                    phaseStart = totalStart;
+                    scenePreloader.markLoaded(imagePath);
+                    if (slowHintTimer) clearTimeout(slowHintTimer);
                     if (sceneHint) sceneHint.style.display = 'none';
                     options.forEach(btn => btn.disabled = false);
                 }
 
-                function showImageError() {
+                function showImageError(error) {
                     sceneReady = false;
                     options.forEach(btn => btn.disabled = true);
                     confirmBtn.disabled = true;
                     if (sceneHint) {
                         sceneHint.classList.add('error');
                         sceneHint.style.display = 'flex';
-                        sceneHint.innerText = '驾驶场景暂未加载成功，请检查网络后刷新页面重新进入';
+                        sceneHint.innerText = '当前驾驶场景暂未加载成功，正在重试…';
+                    }
+                    console.error('trial image load error', imagePath, error);
+                    setTimeout(() => requestCurrentImage(), 1800);
+                }
+
+                function attachActualImage() {
+                    if (!sceneImg || sceneReady) return;
+                    sceneImg.addEventListener('load', enableRatingsAfterImage, { once:true });
+                    sceneImg.addEventListener('error', showImageError, { once:true });
+                    sceneImg.src = imagePath;
+                    if (sceneImg.complete && sceneImg.naturalWidth > 0) {
+                        enableRatingsAfterImage();
                     }
                 }
 
-                if (sceneImg) {
-                    if (sceneImg.complete && sceneImg.naturalWidth > 0) {
-                        enableRatingsAfterImage();
-                    } else {
-                        sceneImg.addEventListener('load', enableRatingsAfterImage, { once:true });
-                        sceneImg.addEventListener('error', showImageError, { once:true });
+                function requestCurrentImage() {
+                    if (!sceneImg || sceneReady) return;
+                    if (scenePreloader.isLoaded(imagePath)) {
+                        attachActualImage();
+                        return;
                     }
-                } else {
-                    showImageError();
+                    if (sceneHint) {
+                        sceneHint.classList.remove('error');
+                        sceneHint.style.display = 'flex';
+                        sceneHint.innerText = '正在准备当前驾驶场景，请稍候…';
+                    }
+                    scenePreloader.whenLoaded(
+                        imagePath,
+                        attachActualImage,
+                        function() {
+                            // 后台预加载若连续报错，则回退到当前 trial 的普通图片请求。
+                            attachActualImage();
+                        }
+                    );
                 }
+
+                slowHintTimer = setTimeout(() => {
+                    if (!sceneReady && sceneHint) {
+                        sceneHint.innerText = '当前网络较慢，驾驶场景仍在加载，请稍候…';
+                    }
+                }, 20000);
+
+                requestCurrentImage();
 
                 function renderSelection(value) {
                     options.forEach(btn => btn.classList.toggle('selected', Number(btn.dataset.score) === value));
@@ -1441,7 +1813,10 @@
                             Cooperation_Score: coopScore,
                             Cooperation_RT_ms: coopRT,
                             Back_to_Q1_Count: backToQ1Count,
-                            Total_Trial_Time_ms: Date.now() - totalStart,
+                            Total_Trial_Time_ms: totalStart === null ? null : Date.now() - totalStart,
+                            Image_Preloaded_Before_Trial: imagePreloadedBeforeTrial ? 1 : 0,
+                            Image_Wait_ms: imageWaitMs,
+                            Preload_Loaded_Count_At_Trial_Start: preloadLoadedCountAtTrialStart,
                             Baseline_Ability_Points: baselineAbility,
                             Baseline_Emotion_Points: baselineEmotion
                         };
@@ -1454,9 +1829,54 @@
 
 
     /* =========================================================
+       浏览器环境守卫
+       微信内置浏览器在当前真实测试中出现长时间资源挂起，因此正式实验要求系统浏览器。
+       ========================================================= */
+    function isWeChatWebView() {
+        return /MicroMessenger/i.test(navigator.userAgent || '');
+    }
+
+    function setupBrowserGuard() {
+        const blocker = document.getElementById('wechat-blocker');
+        const urlBox = document.getElementById('wechat-current-url');
+        const copyBtn = document.getElementById('wechat-copy-btn');
+        if (urlBox) urlBox.innerText = window.location.href;
+
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                const text = window.location.href;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    copyBtn.innerText = '已复制，请粘贴到系统浏览器';
+                } catch (e) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (_) {}
+                    document.body.removeChild(ta);
+                    copyBtn.innerText = '已尝试复制，请粘贴到系统浏览器';
+                }
+            });
+        }
+
+        if (isWeChatWebView() && blocker) {
+            blocker.style.display = 'flex';
+        }
+    }
+
+    setupBrowserGuard();
+
+    /* =========================================================
        4. 启动实验
        ========================================================= */
     async function startExperiment() {
+        if (isWeChatWebView()) {
+            document.getElementById('wechat-blocker').style.display = 'flex';
+            return;
+        }
         const inputVal = document.getElementById('subject-id-input').value.trim();
         if (!inputVal || !/^[A-Za-z0-9_-]{1,30}$/.test(inputVal)) {
             alert('请输入有效的被试编号（仅使用字母、数字、下划线或短横线）。');
@@ -1510,17 +1930,31 @@
         const formalTrials = buildFormalTrials();
         const practiceTrial = {
             image:'test.png', risk:'Practice', scene:0, stimIndex:-1,
-            text:'【练习】请先看看当前路况和智驾助手的功能水平，再根据自己的感受完成评价。',
+            text:'当前处于拥堵路段。请观察当前道路情况和智驾助手的功能水平，再根据自己的感受完成评价。',
             config:{ key:'PracticeBalanced', internalName:'练习配置', abilityLevel:2, emotionLevel:2 },
             assistantLabel:'Practice'
         };
 
+        // 资源优先级：练习图最先；正式图片按“该版本第一次真正出现的顺序”排队。
+        const firstUseFormalImages = [];
+        const seenFormalImages = new Set();
+        formalTrials.forEach(t => {
+            const path = `img/${t.image}`;
+            if (!seenFormalImages.has(path)) {
+                seenFormalImages.add(path);
+                firstUseFormalImages.push(path);
+            }
+        });
+        const scenePriorityQueue = ['img/test.png', ...firstUseFormalImages];
+
+        // 关键：不等待13张全部完成。滚动预加载在后台进行，实验前半段立即开始。
+        scenePreloader.start(scenePriorityQueue);
+
         let timeline = [];
 
         /* =========================================================
-           基线启动版本：暂不进行任何图片预加载。
-           目的：先验证 jsPsych timeline 能在手机端稳定进入欢迎页和后续学习环节。
-           图片加载优化将在这一基线确认后单独处理。
+           jsPsych 主流程立即启动；场景图片由官方 pluginAPI 在后台滚动预加载。
+           当前 trial 如遇尚未完成的图片，会在图片就绪后才开放评分并开始计时。
            ========================================================= */
 
         timeline.push({
@@ -1639,6 +2073,11 @@
         timeline.push(createAssistantIntroNode());
         timeline.push(createPracticeInstructionNode());
         timeline.push(createRatingTrialNode(practiceTrial, false));
+
+        // 练习结束后、正式指导语之前做最后一次资源同步。
+        // 若13张图片已全部完成，此节点会自动跳过，不打断体验。
+        timeline.push(createFormalResourceGateNode(scenePriorityQueue));
+
         timeline.push(createFormalInstructionNode());
 
         for (let i=0; i<formalTrials.length; i++) {
