@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>智能驾驶体验</title>
+    <!-- build: 2026-08-14-sequential-single-image-preload -->
     <script src="jspsych/jspsych.js"></script>
     <script src="plugins/plugin-html-keyboard-response.js"></script>
+    <script src="plugins/plugin-preload.js"></script>
     <link rel="stylesheet" href="jspsych/jspsych.css">
 
     <style>
@@ -42,57 +44,7 @@
         }
         .jspsych-content { width: 100%; max-width: none; }
         .hidden { display: none !important; }
-
-        /* 原生 DOM 图片预加载区：不用 jsPsychPreload，不使用 display:none。
-           让浏览器按普通 <img> 资源加载方式提前缓存正式刺激。 */
-        #native-image-cache {
-            position: fixed;
-            left: -24px;
-            top: -24px;
-            width: 12px;
-            height: 12px;
-            overflow: hidden;
-            opacity: 0.001;
-            pointer-events: none;
-            z-index: -1;
-        }
-        #native-image-cache img {
-            display: block;
-            width: 2px;
-            height: 2px;
-        }
-        .resource-loader-box {
-            width: min(760px, 88vw);
-            background: #2b2b36;
-            border: 1px solid #444;
-            border-radius: 12px;
-            padding: 30px 34px;
-            box-sizing: border-box;
-            text-align: left;
-        }
-        .resource-loader-title {
-            font-size: 28px;
-            color: #64b5f6;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-        .resource-progress-track {
-            width: 100%;
-            height: 12px;
-            background: #15151a;
-            border: 1px solid #555;
-            border-radius: 999px;
-            overflow: hidden;
-            margin: 18px 0 10px;
-        }
-        .resource-progress-fill {
-            width: 0%;
-            height: 100%;
-            background: #4CAF50;
-            transition: width .2s ease;
-        }
-        .fullscreen-container {
+.fullscreen-container {
             width: 100%;
             min-height: 100dvh;
             height: auto;
@@ -779,7 +731,6 @@
     </style>
 </head>
 <body>
-    <div id="native-image-cache" aria-hidden="true"></div>
     <div id="login-screen" class="fullscreen-container">
         <div class="login-box">
             <div class="login-title">输入实验编号</div>
@@ -921,100 +872,6 @@
     const txt5 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆正准备驶入弯道区域…";
     const txt6 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆即将抵达目的地，准备寻找合适的空车位停车…";
     const sceneText = {1: txt1, 2: txt2, 3: txt3, 4: txt4, 5: txt5, 6: txt6};
-
-    /* =========================================================
-       原生 DOM 图片预加载
-       ---------------------------------------------------------
-       当前移动端环境中 jsPsychPreload 会把同源图片误判为加载失败，
-       但普通 <img src="..."> 可以正常显示。因此这里直接使用浏览器原生
-       DOM 图片元素提前缓存材料；jsPsych 仍负责全部实验 timeline 与数据。
-       ========================================================= */
-    const STIMULUS_IMAGES = [
-        'img/high1.png','img/high2.png','img/high3.png','img/high4.png','img/high5.png','img/high6.png',
-        'img/low1.png','img/low2.png','img/low3.png','img/low4.png','img/low5.png','img/low6.png',
-        'img/test.png'
-    ];
-
-    const nativePreloadState = {
-        started: false,
-        loaded: new Set(),
-        failed: new Set(),
-        listeners: new Set()
-    };
-
-    function notifyNativePreload() {
-        nativePreloadState.listeners.forEach(fn => {
-            try { fn(); } catch (e) { console.error(e); }
-        });
-    }
-
-    function nativePreloadProgress() {
-        return {
-            loaded: nativePreloadState.loaded.size,
-            failed: nativePreloadState.failed.size,
-            total: STIMULUS_IMAGES.length
-        };
-    }
-
-    function startNativeImagePreload(forceRetry=false) {
-        const host = document.getElementById('native-image-cache');
-        if (!host) return;
-
-        if (nativePreloadState.started && !forceRetry) return;
-        nativePreloadState.started = true;
-
-        const targets = forceRetry && nativePreloadState.failed.size
-            ? Array.from(nativePreloadState.failed)
-            : STIMULUS_IMAGES.filter(src => !nativePreloadState.loaded.has(src));
-
-        targets.forEach(src => {
-            nativePreloadState.failed.delete(src);
-
-            // 若同一路径已经有正在加载的元素，不重复创建。
-            const existing = Array.from(host.querySelectorAll('img'))
-                .find(img => img.dataset.src === src && !img.dataset.failed);
-            if (existing) return;
-
-            const img = document.createElement('img');
-            img.alt = '';
-            img.loading = 'eager';
-            img.decoding = 'async';
-            img.dataset.src = src;
-
-            img.addEventListener('load', () => {
-                nativePreloadState.loaded.add(src);
-                nativePreloadState.failed.delete(src);
-                img.dataset.loaded = '1';
-                notifyNativePreload();
-            }, { once: true });
-
-            img.addEventListener('error', () => {
-                nativePreloadState.failed.add(src);
-                img.dataset.failed = '1';
-                notifyNativePreload();
-            }, { once: true });
-
-            host.appendChild(img);
-            // 监听器和DOM都就绪后再设置src，避免缓存命中时错过load事件。
-            img.src = src;
-
-            if (img.complete && img.naturalWidth > 0) {
-                nativePreloadState.loaded.add(src);
-                nativePreloadState.failed.delete(src);
-                img.dataset.loaded = '1';
-            }
-        });
-
-        notifyNativePreload();
-    }
-
-    // 页面打开后立即开始按普通网页图片方式后台加载。
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => startNativeImagePreload(), { once:true });
-    } else {
-        startNativeImagePreload();
-    }
-
 
     /* 四种实验条件。level=1/2/3分别表示该大类属性的低/中/高配置。
        正式界面中，三个能力层级共享abilityLevel，三个情感层级共享emotionLevel。 */
@@ -1281,84 +1138,6 @@
             }
         };
     }
-
-
-    function createResourceCheckNode() {
-        return {
-            type: jsPsychHtmlKeyboardResponse,
-            choices: 'NO_KEYS',
-            stimulus: `
-            <div class="fullscreen-container">
-                <div class="resource-loader-box">
-                    <div class="resource-loader-title">正在准备驾驶场景</div>
-                    <div style="color:#c8c8d0;line-height:1.7;font-size:16px;">
-                        驾驶图片正在加载中。完成后会自动进入练习，请稍候。
-                    </div>
-                    <div class="resource-progress-track">
-                        <div id="native-resource-progress" class="resource-progress-fill"></div>
-                    </div>
-                    <div id="native-resource-count" style="text-align:center;color:#b0bec5;font-size:15px;">0 / 13</div>
-                    <div id="native-resource-error" style="margin-top:14px;color:#ffb74d;font-size:14px;line-height:1.6;"></div>
-                    <div id="native-resource-retry-wrap" class="hidden" style="text-align:center;margin-top:16px;">
-                        <button id="native-resource-retry" class="continue-btn">重新加载未完成图片</button>
-                    </div>
-                </div>
-            </div>`,
-            data: {Event_Type:'Resource_Check'},
-            on_load: function() {
-                let finished = false;
-                const update = () => {
-                    if (finished) return;
-                    const state = nativePreloadProgress();
-                    const pct = Math.round((state.loaded / state.total) * 100);
-                    const bar = document.getElementById('native-resource-progress');
-                    const count = document.getElementById('native-resource-count');
-                    const err = document.getElementById('native-resource-error');
-                    const retryWrap = document.getElementById('native-resource-retry-wrap');
-
-                    if (bar) bar.style.width = pct + '%';
-                    if (count) count.innerText = `${state.loaded} / ${state.total}`;
-
-                    if (state.failed > 0) {
-                        if (err) err.innerText = `有 ${state.failed} 张图片暂未成功加载，可点击下方按钮重新尝试。`;
-                        if (retryWrap) retryWrap.classList.remove('hidden');
-                    } else {
-                        if (err) err.innerText = '';
-                        if (retryWrap) retryWrap.classList.add('hidden');
-                    }
-
-                    if (state.loaded === state.total) {
-                        finished = true;
-                        nativePreloadState.listeners.delete(update);
-                        setTimeout(() => jsPsych.finishTrial({
-                            Resource_Loaded: state.loaded,
-                            Resource_Total: state.total,
-                            Resource_Success: 1
-                        }), 180);
-                    }
-                };
-
-                nativePreloadState.listeners.add(update);
-                startNativeImagePreload();
-                update();
-
-                const retryBtn = document.getElementById('native-resource-retry');
-                if (retryBtn) {
-                    retryBtn.addEventListener('click', () => {
-                        retryBtn.disabled = true;
-                        retryBtn.innerText = '正在重新加载…';
-                        startNativeImagePreload(true);
-                        setTimeout(() => {
-                            retryBtn.disabled = false;
-                            retryBtn.innerText = '重新加载未完成图片';
-                            update();
-                        }, 1200);
-                    });
-                }
-            }
-        };
-    }
-
 
     function createPracticeInstructionNode() {
         return {
@@ -1639,9 +1418,11 @@
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('jspsych-target').innerHTML = '';
 
-        // 图片在网页打开后已通过原生 DOM <img> 开始后台加载。
-        // 不再调用 jsPsychPreload；正式练习开始前会统一确认 13 张图片均已准备完成。
-        startNativeImagePreload();
+        const allImages = [
+            'img/high1.png','img/high2.png','img/high3.png','img/high4.png','img/high5.png','img/high6.png',
+            'img/low1.png','img/low2.png','img/low3.png','img/low4.png','img/low5.png','img/low6.png',
+            'img/test.png'
+        ];
 
         const formalTrials = buildFormalTrials();
         const practiceTrial = {
@@ -1652,6 +1433,86 @@
         };
 
         let timeline = [];
+
+        /* =========================================================
+           串行预加载：一次只加载 1 张图片
+           ---------------------------------------------------------
+           诊断结果显示：单张 jsPsychPreload 可以稳定成功，但 13 张图片
+           同时发起 new Image() 请求时，移动端可能发生资源调度阻塞。
+           因此这里保留官方 jsPsychPreload 插件，但将 13 张图片拆成
+           13 个连续的 preload trial，确保任意时刻只请求 1 张图片。
+           ========================================================= */
+        const totalPreloadImages = allImages.length;
+
+        allImages.forEach((imagePath, index) => {
+            const completedBefore = index;
+            const percentBefore = Math.round((completedBefore / totalPreloadImages) * 100);
+
+            timeline.push({
+                type: jsPsychPreload,
+                images: [imagePath],
+                show_progress_bar: false,
+                continue_after_error: false,
+                show_detailed_errors: true,
+                max_load_time: 45000,
+                message: `
+                <div style="min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:#1e1e24;color:#e0e0e0;">
+                    <div style="width:min(680px,90vw);background:#2b2b36;border:1px solid #444;border-radius:14px;padding:30px 28px;box-sizing:border-box;text-align:left;">
+                        <div style="font-size:clamp(26px,5vw,36px);font-weight:bold;color:#64b5f6;text-align:center;margin-bottom:20px;">正在加载驾驶场景</div>
+                        <div style="font-size:clamp(16px,3.8vw,20px);line-height:1.7;color:#d7d7d7;margin-bottom:22px;">
+                            驾驶图片正在依次加载。完成后会自动进入体验，请稍候。
+                        </div>
+                        <div style="height:12px;background:#15151a;border:1px solid #555;border-radius:999px;overflow:hidden;">
+                            <div style="height:100%;width:${percentBefore}%;background:#4CAF50;transition:width .2s ease;"></div>
+                        </div>
+                        <div style="margin-top:14px;text-align:center;font-size:20px;color:#b0bec5;">
+                            ${completedBefore} / ${totalPreloadImages}
+                        </div>
+                        <div style="margin-top:10px;text-align:center;font-size:14px;color:#777;">
+                            正在准备第 ${index + 1} 张图片
+                        </div>
+                    </div>
+                </div>`,
+                error_message: `
+                <div style="min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:#1e1e24;color:#e0e0e0;">
+                    <div style="width:min(720px,90vw);background:#2b2b36;border:1px solid #555;border-radius:14px;padding:30px 28px;box-sizing:border-box;">
+                        <div style="font-size:30px;font-weight:bold;color:#ff7043;text-align:center;margin-bottom:20px;">驾驶场景暂未加载成功</div>
+                        <div style="font-size:18px;line-height:1.7;color:#ddd;">
+                            当前网络未能完成图片加载。请检查网络连接后刷新页面重新进入实验。
+                        </div>
+                        <div style="margin-top:18px;color:#ffb74d;font-size:14px;word-break:break-all;">当前图片：${imagePath}</div>
+                    </div>
+                </div>`,
+                data: {
+                    Event_Type: 'Preload',
+                    Preload_Mode: 'Sequential_Single_Image',
+                    Preload_Image: imagePath,
+                    Preload_Order: index + 1,
+                    Preload_Total: totalPreloadImages
+                }
+            });
+        });
+
+        // 全部 13 张图片均成功后，短暂显示 13/13，再进入欢迎页。
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div style="min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:#1e1e24;color:#e0e0e0;">
+                <div style="width:min(680px,90vw);background:#2b2b36;border:1px solid #444;border-radius:14px;padding:30px 28px;box-sizing:border-box;">
+                    <div style="font-size:clamp(26px,5vw,36px);font-weight:bold;color:#4CAF50;text-align:center;margin-bottom:20px;">驾驶场景准备完成</div>
+                    <div style="height:12px;background:#15151a;border:1px solid #555;border-radius:999px;overflow:hidden;">
+                        <div style="height:100%;width:100%;background:#4CAF50;"></div>
+                    </div>
+                    <div style="margin-top:14px;text-align:center;font-size:20px;color:#d7d7d7;">${totalPreloadImages} / ${totalPreloadImages}</div>
+                </div>
+            </div>`,
+            data: {Event_Type:'Preload_Complete'},
+            on_load: function() {
+                setTimeout(() => jsPsych.finishTrial(), 350);
+            }
+        });
+
 
         timeline.push({
             type: jsPsychHtmlKeyboardResponse,
@@ -1767,9 +1628,6 @@
 
         timeline.push(createBaselineAllocationNode());
         timeline.push(createAssistantIntroNode());
-        // 在进入练习前确认所有驾驶图片均已通过普通 DOM 图片请求加载完成。
-        // 若前面的学习阶段已经加载完毕，本页会自动瞬间跳过。
-        timeline.push(createResourceCheckNode());
         timeline.push(createPracticeInstructionNode());
         timeline.push(createRatingTrialNode(practiceTrial, false));
         timeline.push(createFormalInstructionNode());
