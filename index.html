@@ -1443,6 +1443,12 @@
             message: '正在加载驾驶场景，请稍候……',
             show_progress_bar: true,
             continue_after_error: false,
+            show_detailed_errors: true,
+            max_load_time: null,
+            error_message: '<div style="max-width:90vw;margin:40px auto;color:#fff;line-height:1.7;text-align:left;"><h3 style="color:#ff7043;text-align:center;">驾驶场景资源加载失败</h3><p>请先不要退出页面。下方会列出未能加载的文件路径，请截图并反馈给研究者。</p></div>',
+            on_error: function(file) {
+                console.error('Preload failed file:', file);
+            },
             data: {Event_Type:'Preload'}
         });
 
