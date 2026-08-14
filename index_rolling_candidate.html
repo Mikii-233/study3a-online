@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>智能驾驶体验</title>
+    <!-- build: 2026-08-14-jspsych-rolling-preload-v1 -->
+    <script src="jspsych/jspsych.js"></script>
+    <script src="plugins/plugin-html-keyboard-response.js"></script>
+    <link rel="stylesheet" href="jspsych/jspsych.css">
+
+    <style>
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e24;
+            color: #e0e0e0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #jspsych-target { width: 100%; min-height: 100dvh; }
+        .jspsych-display-element {
+            background-color: #1e1e24;
+            color: #e0e0e0;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .jspsych-content-wrapper {
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100dvh;
+            height: auto;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .jspsych-content { width: 100%; max-width: none; }
+        .hidden { display: none !important; }
+.fullscreen-container {
+            width: 100%;
+            min-height: 100dvh;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 18px 0;
+            overflow: visible;
+        }
+        .highlight-text { color: #ffb74d; font-weight: bold; }
+        .ready-text { color: #4CAF50; font-weight: bold; animation: blink 2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* 登录 */
+        .login-box {
+            background-color: #2b2b36;
+            padding: 50px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            text-align: center;
+        }
+        .login-title { font-size: 32px; color: #64b5f6; margin-bottom: 30px; font-weight: bold; }
+        .login-input {
+            font-size: 28px;
+            padding: 10px;
+            width: 220px;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid #64b5f6;
+            background-color: #15151a;
+            color: white;
+            margin-bottom: 30px;
+            outline: none;
+        }
+        .login-btn, .action-btn {
+            font-size: 22px;
+            padding: 12px 34px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .login-btn:hover, .action-btn:hover { filter: brightness(1.08); }
+
+        /* 通用指导语 */
+        .guide-box {
+            background-color: #2b2b36;
+            padding: 38px 56px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            width: min(900px, 88vw);
+            line-height: 1.8;
+            font-size: 21px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .guide-box.center-guide { text-align: left; }
+        .guide-box.center-guide .context-box { text-align: left; }
+        .guide-box.center-guide .guide-rules { text-align: left; }
+        .guide-title {
+            font-size: 34px;
+            color: #64b5f6;
+            margin-bottom: 26px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .footer-hint { margin-top: 32px; text-align: center; font-size: 20px; color: #9e9e9e; height: 30px; }
+        .context-box {
+            background-color: #383846;
+            padding: 18px 26px;
+            border-left: 5px solid #ffb74d;
+            margin-bottom: 24px;
+            border-radius: 4px;
+            font-size: 19px;
+        }
+        .key-hint-box {
+            background-color: #15151a;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: center;
+            font-size: 19px;
+            margin-top: 15px;
+            color: #b0bec5;
+        }
+
+        /* 概念学习 */
+        .concept-cards { display: flex; gap: 20px; width: min(1000px, 92vw); margin-bottom: 18px; }
+        .concept-card {
+            flex: 1;
+            background-color: #383846;
+            border-radius: 8px;
+            padding: 20px;
+            border-top: 4px solid #64b5f6;
+        }
+        .concept-card.warmth { border-top-color: #ffb74d; }
+        .concept-card h3 { margin-top: 0; color: #e0e0e0; border-bottom: 1px solid #555; padding-bottom: 10px; font-size: 20px; }
+        .concept-card p { font-size: 16px; color: #b0bec5; line-height: 1.6; }
+        .quiz-section {
+            background-color: #15151a;
+            border: 1px solid #444;
+            padding: 22px 36px;
+            border-radius: 8px;
+            width: min(920px, 88vw);
+            font-size: 19px;
+            margin-top: 28px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        /* 人口学 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px 24px;
+            margin-top: 20px;
+        }
+        .form-item {
+            background-color: #15151a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .form-item label { display: block; margin-bottom: 10px; color: #b0bec5; font-size: 17px; }
+        .form-item input, .form-item select {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #2b2b36;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 18px;
+            outline: none;
+        }
+        .warn-text { text-align: center; color: #ff5252; font-size: 18px; margin-top: 16px; min-height: 24px; font-weight: bold; }
+
+        /* 基线点数分配 */
+        .allocation-wrap {
+            display: flex;
+            gap: 34px;
+            justify-content: center;
+            align-items: stretch;
+            margin: 24px 0;
+        }
+        .allocation-card {
+            width: 320px;
+            padding: 24px;
+            background-color: #15151a;
+            border: 1px solid #444;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .allocation-card.comp { border-top: 5px solid #4CAF50; }
+        .allocation-card.warm { border-top: 5px solid #FF9800; }
+        .allocation-score { font-size: 54px; font-weight: bold; margin: 16px 0; }
+        .allocation-controls { display: flex; justify-content: center; gap: 18px; }
+        .mini-btn {
+            width: 54px;
+            height: 44px;
+            font-size: 26px;
+            border-radius: 8px;
+            border: 1px solid #666;
+            background-color: #383846;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* 四种助手介绍卡 */
+        .assistant-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            width: min(1100px, 92vw);
+        }
+        .assistant-card {
+            background-color: #2b2b36;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-sizing: border-box;
+        }
+        .assistant-card-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 14px; color: #fff; }
+        .mini-dim-row { display: flex; align-items: center; justify-content:center; gap: 14px; margin: 12px 0; }
+        .mini-dim-label { width: 110px; font-size: 18px; font-weight: bold; white-space:nowrap; }
+        .mini-bars { display: flex; gap: 10px; }
+        .mini-bar { width: 54px; height: 20px; border: 2px solid #777; border-radius: 5px; background-color: rgba(255,255,255,0.04); }
+        .mini-bar.comp.on { background-color: #4CAF50; border-color: #4CAF50; box-shadow: 0 0 8px rgba(76,175,80,0.35); }
+        .mini-bar.warm.on { background-color: #FF9800; border-color: #FF9800; box-shadow: 0 0 8px rgba(255,152,0,0.35); }
+
+        /* 正式试验矩阵：沿用3b的两列结构 */
+        .matrix-shell {
+            display: flex;
+            width: min(1200px, 94vw);
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 0 auto;
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 50%;
+            box-sizing: border-box;
+        }
+        .panel-title {
+            font-size: clamp(20px, 1.45vw, 27px);
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .attr-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .attr-name {
+            font-size: clamp(15px, 1.05vw, 20px);
+            color: #b0bec5;
+            margin-bottom: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .block-container { display: flex; gap: clamp(10px, 1vw, 18px); justify-content: center; }
+        .block {
+            width: clamp(42px, 3.5vw, 62px);
+            height: clamp(15px, 1.35vw, 24px);
+            border-radius: 6px;
+            border: 2px solid #777;
+            box-sizing: border-box;
+        }
+        .block-filled-comp { background-color: #4CAF50; border-color: #4CAF50; box-shadow: 0 0 10px rgba(76,175,80,0.35); }
+        .block-filled-warm { background-color: #FF9800; border-color: #FF9800; box-shadow: 0 0 10px rgba(255,152,0,0.35); }
+        .block-empty { background-color: rgba(255,255,255,0.04); }
+
+        /* 试次下方评分区 */
+        .rating-question { font-size: clamp(19px, 1.45vw, 27px); font-weight: bold; color: #f0f0f0; margin-bottom: 14px; text-align: center; }
+        .rating-scale {
+            display: flex;
+            justify-content: space-between;
+            width: min(1000px, 90vw);
+            font-size: clamp(14px, 1vw, 18px);
+            color: #64b5f6;
+            font-weight: bold;
+        }
+        .rating-choice { margin-top: 12px; font-size: clamp(18px, 1.25vw, 23px); color: #4CAF50; font-weight: bold; text-align: center; }
+        .rating-hint { margin-top: 8px; color: #ffb74d; font-size: clamp(14px, 1vw, 18px); text-align: center; }
+        .assistant-badge {
+            position: static;
+            transform: none;
+            padding: 5px 18px;
+            background-color: #15151a;
+            border: 1px solid #555;
+            border-radius: 999px;
+            font-size: clamp(14px, 1vw, 18px);
+            color: #d7d7d7;
+            z-index: 3;
+            flex: 0 0 auto;
+        }
+
+
+        /* ===== 在线/触屏版补充样式 ===== */
+        button, input { touch-action: manipulation; }
+        .continue-btn {
+            min-width: 180px;
+            min-height: 52px;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+        }
+        .continue-btn:disabled { opacity: .45; cursor: not-allowed; }
+        .quiz-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .quiz-option {
+            min-height: 54px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            border: 1px solid #666;
+            background: #2b2b36;
+            color: #f0f0f0;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .quiz-option.selected { border-color:#64b5f6; box-shadow:0 0 0 2px rgba(100,181,246,.25) inset; }
+        .quiz-option.correct { border-color:#4CAF50; background:rgba(76,175,80,.18); }
+        .quiz-option.wrong { border-color:#ff7043; background:rgba(255,112,67,.14); }
+        .level-legend {
+            width:min(1080px,92vw);
+            background:#15151a;
+            border:1px solid #444;
+            border-radius:10px;
+            padding:16px 22px;
+            box-sizing:border-box;
+            margin:0 auto 18px;
+            line-height:1.7;
+            font-size:17px;
+            color:#c9c9c9;
+        }
+        .legend-levels {
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:12px;
+            margin-top:12px;
+        }
+        .legend-level {
+            background:#2b2b36;
+            border:1px solid #4b4b56;
+            border-radius:8px;
+            padding:10px;
+            text-align:center;
+        }
+        .legend-bars {
+            display:flex;
+            justify-content:center;
+            gap:7px;
+            margin-bottom:7px;
+        }
+        .legend-bar {
+            width:34px;
+            height:13px;
+            border:1.5px solid #777;
+            border-radius:4px;
+            background:rgba(255,255,255,.04);
+            box-sizing:border-box;
+        }
+        .legend-bar.on {
+            background:#64b5f6;
+            border-color:#64b5f6;
+            box-shadow:0 0 7px rgba(100,181,246,.28);
+        }
+        .assistant-note { color:#aeb7c2; font-size:15px; line-height:1.55; margin-top:10px; text-align:center; }
+        .assistant-profile { color:#ffcf8a; font-size:16px; line-height:1.4; margin:2px 0 12px; text-align:center; font-weight:bold; }
+        .rating-back { position:absolute; top:5px; right:10px; border:1px solid #666; border-radius:7px; background:#1f2028; color:#c8d2dc; padding:4px 9px; font-size:12px; cursor:pointer; }
+        .rating-back.hidden { display:none; }
+        .rating-options {
+            display:grid;
+            grid-template-columns:repeat(5, 1fr);
+            gap:14px;
+            width:min(760px,90vw);
+            margin-top:8px;
+        }
+        .rating-option {
+            min-height:54px;
+            padding:6px 8px;
+            border-radius:10px;
+            border:2px solid #59616d;
+            background:#1f2028;
+            color:#64b5f6;
+            font-size:24px;
+            font-weight:bold;
+            cursor:pointer;
+        }
+        .rating-anchors {
+            width:min(760px,90vw);
+            display:grid;
+            grid-template-columns:1fr 1fr 1fr;
+            margin-top:4px;
+            color:#b7c5d3;
+            font-size:15px;
+        }
+        .rating-anchors span:nth-child(1){text-align:left;}
+        .rating-anchors span:nth-child(2){text-align:center;}
+        .rating-anchors span:nth-child(3){text-align:right;}
+        .rating-option.selected {
+            border-color:#4CAF50;
+            background:rgba(76,175,80,.16);
+            box-shadow:0 0 0 2px rgba(76,175,80,.15) inset;
+        }
+        .rating-confirm {
+            margin-top:10px;
+            min-width:150px;
+            min-height:44px;
+            padding:8px 22px;
+            border:0;
+            border-radius:9px;
+            background:#4CAF50;
+            color:white;
+            font-size:17px;
+            font-weight:bold;
+            cursor:pointer;
+        }
+        .rating-confirm:disabled { opacity:.4; cursor:not-allowed; }
+        .rating-zone { position:relative; }
+        .rating-progress {
+            position:absolute;
+            top:6px;
+            left:12px;
+            font-size:14px;
+            color:#9e9e9e;
+            margin:0;
+        }
+        .trial-shell { display:flex; flex-direction:column; height:100dvh; min-height:100dvh; width:100%; overflow:hidden; box-sizing:border-box; }
+        .scene-image-frame {
+            position: relative;
+            width: min(95%, 637px);
+            aspect-ratio: 637 / 315;
+            max-height: 100%;
+            background-color: #15151a;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            overflow: hidden;
+            flex: 0 0 auto;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .scene-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .scene-load-hint {
+            position:absolute;
+            inset:0;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:16px;
+            box-sizing:border-box;
+            text-align:center;
+            color:#b0bec5;
+            background:#15151a;
+            font-size:clamp(14px,3.2vw,18px);
+            z-index:2;
+        }
+        .scene-load-hint.error { color:#ffb74d; }
+        .rating-option:disabled { opacity:.35; cursor:not-allowed; }
+        .device-note { font-size:14px; color:#8e98a5; text-align:center; margin-top:10px; }
+
+        @media (max-width: 900px) {
+            .guide-box { width:94vw; padding:24px 24px; font-size:18px; }
+            .guide-title { font-size:27px; margin-bottom:18px; }
+            .concept-cards { width:94vw; gap:12px; }
+            .concept-card { padding:14px; }
+            .concept-card h3 { font-size:17px; }
+            .concept-card p { font-size:14px; }
+            .assistant-grid { width:94vw; gap:12px; }
+            .assistant-card { padding:14px; }
+            .assistant-card-title { font-size:20px; }
+            .mini-dim-label { width:84px; font-size:15px; }
+            .mini-bar { width:34px; height:17px; }
+            .allocation-wrap { gap:14px; }
+            .allocation-card { width:min(300px,42vw); padding:16px; }
+            .rating-options { gap:8px; grid-template-columns:repeat(5, 1fr); width:92vw; }
+            .rating-option { min-width:0; min-height:50px; padding:4px; font-size:22px; }
+            .rating-anchors { width:92vw; font-size:13px; }
+            .matrix-shell { width:98vw; }
+            .block { width:clamp(28px,7vw,48px); height:18px; }
+            .block-container { gap:6px; }
+            .attr-name { font-size:14px; }
+            .panel-title { font-size:18px; }
+        }
+        @media (max-width: 650px) {
+            /* 手机端以竖屏为主：页面本身可滚动，但不再使用卡片内部的嵌套滚动。 */
+            html, body, #jspsych-target, .jspsych-display-element {
+                min-height: 100svh;
+                overscroll-behavior-y: contain;
+            }
+            .jspsych-content-wrapper {
+                min-height: 100svh;
+                height: auto;
+                align-items: flex-start;
+            }
+            .fullscreen-container {
+                width: 100%;
+                min-height: 100svh;
+                height: auto;
+                justify-content: flex-start;
+                padding: 12px 0 calc(18px + env(safe-area-inset-bottom));
+                overflow: visible;
+            }
+            #login-screen.fullscreen-container {
+                min-height: 100svh;
+                justify-content: center;
+                padding: 16px 0 calc(16px + env(safe-area-inset-bottom));
+            }
+            .login-box {
+                width: 90vw;
+                padding: 24px 18px;
+                box-sizing: border-box;
+            }
+            .login-title { font-size: 25px; margin-bottom: 16px; }
+            .login-input { width: 72vw; max-width: 260px; font-size: 23px; margin-bottom: 18px; }
+            .login-btn, .action-btn, .continue-btn {
+                min-height: 44px;
+                padding: 9px 18px;
+                font-size: 16px;
+                border-radius: 9px;
+            }
+            .guide-box {
+                width: 92vw;
+                padding: 16px 15px;
+                font-size: 15.5px;
+                line-height: 1.55;
+            }
+            .guide-title {
+                font-size: 23px;
+                line-height: 1.25;
+                margin-bottom: 11px;
+            }
+            .context-box {
+                padding: 11px 13px;
+                margin-bottom: 11px;
+                font-size: 14.5px;
+                line-height: 1.5;
+            }
+            .key-hint-box { padding:10px; font-size:14px; margin-top:10px; }
+            .footer-hint { margin-top:14px; height:auto; font-size:15px; }
+
+            /* 概念学习：三张卡片全部直接呈现，不在卡片区内滚动。 */
+            .concept-cards {
+                width: 92vw;
+                flex-direction: column;
+                gap: 19px;
+                margin-bottom: 12px;
+                max-height: none;
+                overflow: visible;
+            }
+            .concept-card {
+                padding: 8px 11px;
+                border-top-width: 3px;
+            }
+            .concept-card h3 {
+                font-size: 15px;
+                line-height: 1.3;
+                margin: 0 0 4px;
+                padding-bottom: 4px;
+            }
+            .concept-card p {
+                font-size: 13px;
+                line-height: 1.4;
+                margin: 0;
+            }
+            .quiz-section {
+                width: 92vw;
+                padding: 11px 12px;
+                margin-top: 5px;
+                font-size: 14px;
+                line-height: 1.45;
+            }
+            .quiz-options {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+                margin-top: 10px;
+            }
+            .quiz-option {
+                min-height: 42px;
+                padding: 6px 4px;
+                font-size: 13px;
+                line-height: 1.25;
+            }
+            .warn-text { font-size:13px; margin-top:8px; min-height:18px; }
+
+            /* 10点分配：手机竖屏仍保持左右并列，避免无意义的纵向滚动。 */
+            .allocation-wrap {
+                flex-direction: row;
+                align-items: stretch;
+                gap: 8px;
+                margin: 13px 0;
+                max-height: none;
+                overflow: visible;
+                width: 100%;
+            }
+            .allocation-card {
+                width: calc(50% - 4px);
+                padding: 11px 7px;
+            }
+            .allocation-score { font-size:38px; margin:8px 0; }
+            .allocation-controls { gap:8px; }
+            .mini-btn { width:46px; height:40px; font-size:22px; }
+
+            /* 四助手学习：2×2矩阵一次看全；不再使用单列+内部滚动。 */
+            .level-legend {
+                width: 92vw;
+                padding: 9px 11px;
+                margin-bottom: 8px;
+                font-size: 13px;
+                line-height: 1.45;
+            }
+            .legend-levels {
+                grid-template-columns: repeat(3,1fr);
+                gap: 5px;
+                margin-top: 7px;
+            }
+            .legend-level { padding:6px 3px; font-size:12px; }
+            .legend-bars { gap:3px; margin-bottom:4px; }
+            .legend-bar { width:18px; height:8px; border-width:1px; }
+            .assistant-grid {
+                grid-template-columns: 1fr 1fr;
+                width: 92vw;
+                gap: 7px;
+                max-height: none;
+                overflow: visible;
+            }
+            .assistant-card { padding: 9px 7px; border-radius:9px; }
+            .assistant-card-title { font-size:16px; margin-bottom:7px; }
+            .mini-dim-row { gap:5px; margin:6px 0; }
+            .mini-dim-label { width:58px; font-size:12px; white-space:nowrap; flex:0 0 auto; }
+            .mini-bars { gap:3px; flex:0 0 auto; }
+            .mini-bar { width:20px; height:11px; border-width:1.5px; border-radius:3px; }
+            .assistant-note { font-size:11.5px; line-height:1.35; margin-top:4px; }
+
+            /* 正式/练习 Trial：固定竖屏结构；正常尺寸下无需滚动，极小屏幕仍允许整页向下滑。 */
+            .trial-shell {
+                height: 100svh;
+                min-height: 100svh;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            .trial-shell > div:nth-child(1) {
+                flex: 0 0 10% !important;
+                min-height: 62px;
+                padding: 5px 11px !important;
+                font-size: 13px !important;
+                line-height: 1.32 !important;
+                overflow: visible !important;
+            }
+            .trial-shell > div:nth-child(2) {
+                flex: 0 0 30% !important;
+                min-height: 170px;
+                padding: 4px 0 !important;
+                overflow: hidden;
+            }
+            .trial-shell > div:nth-child(2) img {
+                width: 96% !important;
+                height: 100% !important;
+                max-width: 96% !important;
+                object-fit: contain !important;
+            }
+            .trial-shell > div:nth-child(2) .scene-image-frame {
+                width: 96% !important;
+                max-width: 637px !important;
+                height: auto !important;
+                aspect-ratio: 637 / 315;
+            }
+            .trial-shell > div:nth-child(3) {
+                flex: 0 0 35% !important;
+                min-height: 212px;
+                padding: 6px 0 3px !important;
+            }
+            .trial-shell > div:nth-child(4) {
+                flex: 1 0 25% !important;
+                min-height: 164px;
+                padding: 18px 8px calc(5px + env(safe-area-inset-bottom)) !important;
+                overflow: visible !important;
+                justify-content: center !important;
+            }
+            .assistant-badge {
+                max-width: 90vw;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 12px;
+                padding: 4px 10px;
+                margin: 0 0 11px;
+            }
+            .matrix-shell { width:100%; margin-top:4px; }
+            .panel-title { font-size:15px; margin-bottom:4px; letter-spacing:1px; }
+            .attr-group { margin-bottom:4px; }
+            .attr-name { font-size:11.5px; margin-bottom:3px; }
+            .block-container { gap:4px; }
+            .block { width:25px; height:12px; border-width:1.5px; border-radius:4px; }
+
+            .rating-question {
+                max-width: 96vw;
+                font-size: 15px;
+                line-height: 1.25;
+                margin-bottom: 4px;
+                white-space: nowrap;
+            }
+            .rating-question.long-question {
+                font-size: clamp(10.5px, 2.85vw, 12.5px);
+                white-space: nowrap;
+            }
+            .rating-options {
+                width: 94vw;
+                grid-template-columns: repeat(5,1fr);
+                gap: 6px;
+                margin-top: 4px;
+            }
+            .rating-option {
+                min-width: 0;
+                min-height: 40px;
+                padding: 1px;
+                font-size: 18px;
+                border-radius:8px;
+            }
+            .rating-anchors { width:94vw; font-size:11px; margin-top:3px; }
+            .rating-confirm {
+                margin-top: 5px;
+                min-width: 136px;
+                min-height: 38px;
+                padding: 5px 14px;
+                font-size: 14px;
+            }
+            .device-note { font-size:12px; line-height:1.4; margin-top:8px; }
+        }
+
+        /* 手机横屏仍可使用，但给竖屏留出更稳定的主要设计空间。 */
+        @media (max-width: 900px) and (orientation: landscape) {
+            .trial-shell { min-height: 100dvh; height:auto; overflow-y:auto; }
+        }
+
+
+        /* ===== 浏览器环境提示：微信内置浏览器不用于正式实验 ===== */
+        .wechat-blocker {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            box-sizing: border-box;
+            background: #1e1e24;
+            color: #fff;
+        }
+        .wechat-blocker-card {
+            width: min(720px, 94vw);
+            background: #2b2b36;
+            border: 1px solid #4a4a54;
+            border-radius: 16px;
+            padding: 28px 24px;
+            box-sizing: border-box;
+            line-height: 1.75;
+            text-align: left;
+        }
+        .wechat-blocker-title {
+            color: #ffb74d;
+            font-size: clamp(24px, 6vw, 34px);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .wechat-copy-btn {
+            display: block;
+            min-width: 180px;
+            min-height: 48px;
+            margin: 20px auto 0;
+            border: 0;
+            border-radius: 9px;
+            background: #64b5f6;
+            color: #111;
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .wechat-url {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #15151a;
+            color: #b0bec5;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="wechat-blocker" class="wechat-blocker">
+        <div class="wechat-blocker-card">
+            <div class="wechat-blocker-title">请在系统浏览器中打开</div>
+            <div>
+                为保证驾驶场景加载和实验计时稳定，本实验不在微信内置浏览器中直接运行。<br><br>
+                <b>iPhone：</b>点击右上角“…” → 选择“在默认浏览器中打开”，建议使用 Safari。<br>
+                <b>Android：</b>点击右上角“…” → 选择“在浏览器打开”，建议使用 Chrome、Edge 或手机系统浏览器。<br><br>
+                也可以复制下方网址后粘贴到系统浏览器地址栏。
+            </div>
+            <button id="wechat-copy-btn" class="wechat-copy-btn" type="button">复制实验网址</button>
+            <div id="wechat-current-url" class="wechat-url"></div>
+        </div>
+    </div>
+
+    <div id="login-screen" class="fullscreen-container">
+        <div class="login-box">
+            <div class="login-title">输入实验编号</div>
+            <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
+            <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
+            <button class="login-btn" onclick="startExperiment()">进入体验</button>
+            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych rolling preload · Safari/system browser</div>
+        </div>
+    </div>
+
+    <div id="jspsych-target"></div>
+
+<script>
+    /* =========================================================
+       1. 全局变量与材料
+       ========================================================= */
+    let currentSubjectId = "";
+    let versionIndex = 0;
+    let spatialLayout = "CompLeft";
+    let currentVersion = "";
+    let baselineAbility = null;
+    let baselineEmotion = null;
+
+    /* =========================================================
+       DataPipe / OSF 在线数据回收配置
+       =========================================================
+       1) 在 https://pipe.jspsych.org 创建实验后，将实验 ID 填到下方。
+       2) DataPipe 后台将 Condition assignment 设置为 4 个条件。
+          条件 0 = 顺序A × 能力左
+          条件 1 = 顺序A × 情感左
+          条件 2 = 顺序B × 能力左
+          条件 3 = 顺序B × 情感左
+       3) 正式收集时 DATAPIPE_REQUIRED 保持 true；若分配/上传失败，实验不会静默继续。
+    */
+    const DATAPIPE_EXPERIMENT_ID = 'kYthZed2dSW4';
+    const DATAPIPE_REQUIRED = true;
+    const DATAPIPE_BASE = 'https://pipe.jspsych.org/api';
+
+    let dataPipeCondition = null;
+    let sessionUUID = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `fallback-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    function dataPipeConfigured() {
+        return DATAPIPE_EXPERIMENT_ID && !DATAPIPE_EXPERIMENT_ID.startsWith('REPLACE_');
+    }
+
+    async function getDataPipeCondition() {
+        if (!dataPipeConfigured()) {
+            throw new Error('DataPipe experiment ID 尚未配置。');
+        }
+        const response = await fetch(`${DATAPIPE_BASE}/condition/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ experimentID: DATAPIPE_EXPERIMENT_ID })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || typeof result.condition !== 'number') {
+            throw new Error(result.message || `DataPipe 条件分配失败（HTTP ${response.status}）`);
+        }
+        return result.condition;
+    }
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function pad3(n) { return String(n).padStart(3, '0'); }
+
+    function formatLocalTimestamp(date = new Date()) {
+        return `${date.getFullYear()}${pad2(date.getMonth()+1)}${pad2(date.getDate())}_${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}_${pad3(date.getMilliseconds())}`;
+    }
+
+    function buildUniqueDataFilename() {
+        const safeSubject = String(currentSubjectId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        return `${formatLocalTimestamp(new Date())}_Subject${safeSubject}.csv`;
+    }
+
+    const CLEAN_CSV_COLUMNS = [
+        'Subject_ID','DataPipe_Condition','Sequence','Spatial_Layout','Formal_Trial_Order',
+        'Block','Block_Position','Image_Number','Image_ID','Image_File','Scene_ID','Risk_Level',
+        'Assistant_Label','Config_Code','Config_Type','Config_Name_CN','Ability_Level','Emotion_Level',
+        'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Back_to_Q1_Count','Total_Trial_Time_ms',
+        'Image_Preloaded_Before_Trial','Image_Wait_ms','Preload_Loaded_Count_At_Trial_Start',
+        'Baseline_Ability_Points','Baseline_Emotion_Points'
+    ];
+
+    function csvEscape(value) {
+        if (value === null || value === undefined) return '';
+        const s = String(value);
+        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    }
+
+    function buildCleanFormalCSV() {
+        const rows = jsPsych.data.get().filter({Event_Type:'Formal_Trial'}).values();
+        const lines = [CLEAN_CSV_COLUMNS.join(',')];
+        rows.forEach(row => {
+            lines.push(CLEAN_CSV_COLUMNS.map(col => csvEscape(row[col])).join(','));
+        });
+        return lines.join('\r\n');
+    }
+
+    async function uploadFinalDataToDataPipe(csvString) {
+        if (!dataPipeConfigured()) {
+            throw new Error('DataPipe experiment ID 尚未配置。');
+        }
+        const filename = buildUniqueDataFilename();
+        const response = await fetch(`${DATAPIPE_BASE}/data/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                experimentID: DATAPIPE_EXPERIMENT_ID,
+                filename: filename,
+                data: csvString
+            })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.message !== 'Success') {
+            throw new Error(result.message || `DataPipe 数据上传失败（HTTP ${response.status}）`);
+        }
+        return { filename, result };
+    }
+
+    function prepareLocalBackup(csvString) {
+        window.downloadCSV = function() {
+            const fileName = `BACKUP_${formatLocalTimestamp(new Date())}_Subject${String(currentSubjectId).replace(/[^a-zA-Z0-9_-]/g,'_')}.csv`;
+            const blob = new Blob([csvString.startsWith("\uFEFF") ? csvString : "\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+    }
+
+    const txt1 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆正行驶在公路上，此时，侧方有一辆车准备汇入我们所在的车道…";
+    const txt2 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆正沿着道路向前行驶，此时，前方路面出现了施工区域和路障…";
+    const txt3 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆即将进入居民区，正在驶向路口…";
+    const txt4 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆正准备通过前方的十字路口，此时，前方交通状况发生了变化…";
+    const txt5 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆正准备驶入弯道区域…";
+    const txt6 = "您现在正坐在由当前智驾助手驾驶的汽车后排。车辆即将抵达目的地，准备寻找合适的空车位停车…";
+    const sceneText = {1: txt1, 2: txt2, 3: txt3, 4: txt4, 5: txt5, 6: txt6};
+
+    /* 四种实验条件。level=1/2/3分别表示该大类属性的低/中/高配置。
+       正式界面中，三个能力层级共享abilityLevel，三个情感层级共享emotionLevel。 */
+    const CONFIGS = [
+        { key: 'AbilityOriented', internalName: '能力导向型', abilityLevel: 3, emotionLevel: 1 },
+        { key: 'EmotionOriented', internalName: '情感导向型', abilityLevel: 1, emotionLevel: 3 },
+        { key: 'BalancedBaseline', internalName: '均衡基线型', abilityLevel: 2, emotionLevel: 2 },
+        { key: 'LowLow', internalName: '双低配置型', abilityLevel: 1, emotionLevel: 1 }
+    ];
+
+    /* 四个助手固定对应唯一配置，不随版本改变。
+       A=能力导向(3/1)，B=情感导向(1/3)，C=均衡基线(2/2)，D=双低(1/1)。 */
+    let assistantLabelMap = {};
+    let configToLabel = {};
+
+    /* 12个驾驶刺激：6种场景 × 高/低风险，各1张。
+       顺序沿用3b中已经人为拉开同类场景距离的排列。 */
+    const BASE_STIMULI = [
+        { image:'high1.png', risk:'High', scene:1 },
+        { image:'low2.png',  risk:'Low',  scene:2 },
+        { image:'high3.png', risk:'High', scene:3 },
+        { image:'low4.png',  risk:'Low',  scene:4 },
+        { image:'low5.png',  risk:'Low',  scene:5 },
+        { image:'high6.png', risk:'High', scene:6 },
+        { image:'high2.png', risk:'High', scene:2 },
+        { image:'low3.png',  risk:'Low',  scene:3 },
+        { image:'low1.png',  risk:'Low',  scene:1 },
+        { image:'high4.png', risk:'High', scene:4 },
+        { image:'high5.png', risk:'High', scene:5 },
+        { image:'low6.png',  risk:'Low',  scene:6 }
+    ].map((x, i) => ({...x, stimIndex:i, text:sceneText[x.scene]}));
+
+    const jsPsych = initJsPsych({
+        display_element: 'jspsych-target',
+        on_finish: async function() {
+            const rawCleanCsv = buildCleanFormalCSV();
+            const csvString = "\uFEFF" + rawCleanCsv;
+            prepareLocalBackup(csvString);
+
+            document.getElementById('jspsych-target').innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                    <div style="max-width:760px;">
+                        <h2 style="color:#64b5f6;">体验已完成，正在提交数据……</h2>
+                        <p style="color:#bbb;line-height:1.8;">请暂时不要关闭、刷新或返回此页面。数据成功保存到研究数据库后会自动显示确认信息。</p>
+                    </div>
+                </div>`;
+
+            try {
+                const upload = await uploadFinalDataToDataPipe(csvString);
+                document.getElementById('jspsych-target').innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                        <div style="max-width:760px;">
+                            <h2 style="color:#4CAF50;">✓ 数据提交成功</h2>
+                            <p style="color:#ddd;line-height:1.8;">本次体验已全部结束，感谢您的参与！现在可以安全关闭此页面。</p>
+                            <p style="color:#777;font-size:14px;">数据文件：${upload.filename}</p>
+                        </div>
+                    </div>`;
+                console.log('DataPipe upload success:', upload.filename);
+            } catch (error) {
+                console.error('DataPipe upload failed:', error);
+                document.getElementById('jspsych-target').innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;padding:40px;text-align:center;background-color:#1e1e24;min-height:100vh;color:white;box-sizing:border-box;">
+                        <div style="max-width:820px;">
+                            <h2 style="color:#ff7043;">数据暂未成功上传</h2>
+                            <p style="color:#ddd;line-height:1.8;">请不要直接关闭页面。您可以先检查网络并刷新后重新完成实验；如研究者允许，也可点击下方按钮保存本地备份文件并联系研究者。</p>
+                            <p style="color:#ffb74d;font-size:15px;word-break:break-all;">错误信息：${String(error.message || error)}</p>
+                            <button onclick="downloadCSV()" style="padding:12px 24px;font-size:18px;background-color:#64b5f6;color:#111;border:none;border-radius:8px;cursor:pointer;">保存本地备份 CSV</button>
+                            <p style="color:#777;font-size:14px;margin-top:20px;">会话编号：${sessionUUID}</p>
+                        </div>
+                    </div>`;
+            }
+        }
+    });
+
+    /* =========================================================
+       场景资源管理器：3 个滚动并发槽位
+       ---------------------------------------------------------
+       - 使用 jsPsych 官方 pluginAPI.preloadImages()
+       - 同时最多 3 张；任一完成后立即补下一张
+       - 不阻塞欢迎页/概念学习/点数分配等前半段流程
+       - test.png 优先；正式图片按该被试实际试次的首次出现顺序排队
+       ========================================================= */
+    const SCENE_PRELOAD_CONCURRENCY = 3;
+
+    const scenePreloader = (() => {
+        let queue = [];
+        let active = 0;
+        let running = false;
+        const loaded = new Set();
+        const loading = new Set();
+        const queued = new Set();
+        const failed = new Map();
+        const waiters = new Map();
+
+        function norm(file) {
+            const clean = String(file || '').replace(/^img\//, '').replace(/[^A-Za-z0-9_.-]/g, '');
+            return `img/${clean}`;
+        }
+
+        function loadedCount() { return loaded.size; }
+        function isLoaded(file) { return loaded.has(norm(file)); }
+        function isLoading(file) { return loading.has(norm(file)); }
+
+        function notifySuccess(file) {
+            const list = waiters.get(file) || [];
+            waiters.delete(file);
+            list.forEach(w => { try { w.ok(); } catch(e) { console.error(e); } });
+        }
+
+        function notifyFailure(file, error) {
+            const list = waiters.get(file) || [];
+            waiters.delete(file);
+            list.forEach(w => { try { if (w.fail) w.fail(error); } catch(e) { console.error(e); } });
+        }
+
+        function enqueue(files, front=false) {
+            const fresh = [];
+            files.forEach(raw => {
+                const file = norm(raw);
+                if (loaded.has(file) || loading.has(file) || queued.has(file)) return;
+                queued.add(file);
+                fresh.push(file);
+            });
+            if (front) queue = fresh.concat(queue);
+            else queue.push(...fresh);
+            if (running) pump();
+        }
+
+        function prioritize(file) {
+            file = norm(file);
+            if (loaded.has(file) || loading.has(file)) return;
+            queue = queue.filter(x => x !== file);
+            queued.delete(file);
+            queued.add(file);
+            queue.unshift(file);
+            if (running) pump();
+        }
+
+        function whenLoaded(file, ok, fail) {
+            file = norm(file);
+            if (loaded.has(file)) {
+                setTimeout(ok, 0);
+                return;
+            }
+            if (!waiters.has(file)) waiters.set(file, []);
+            waiters.get(file).push({ok, fail});
+            prioritize(file);
+        }
+
+        function markLoaded(file) {
+            file = norm(file);
+            if (loaded.has(file)) return;
+            loaded.add(file);
+            loading.delete(file);
+            queued.delete(file);
+            failed.delete(file);
+            notifySuccess(file);
+        }
+
+        function launch(file) {
+            active++;
+            loading.add(file);
+            queued.delete(file);
+            const startedAt = performance.now();
+
+            jsPsych.pluginAPI.preloadImages(
+                [file],
+                function() {
+                    active--;
+                    loading.delete(file);
+                    loaded.add(file);
+                    failed.delete(file);
+                    console.log(`[scene preload] loaded ${file} in ${((performance.now()-startedAt)/1000).toFixed(1)}s; ${loaded.size}/13`);
+                    notifySuccess(file);
+                    pump();
+                },
+                function() {},
+                function(errorInfo) {
+                    active--;
+                    loading.delete(file);
+                    const tries = (failed.get(file) || 0) + 1;
+                    failed.set(file, tries);
+                    console.warn('[scene preload] error', file, errorInfo, 'try', tries);
+
+                    // 网络错误时最多自动重试 2 次；正式 trial 仍有当前图片门控作为最后保障。
+                    if (tries <= 2) {
+                        setTimeout(() => {
+                            if (!loaded.has(file) && !loading.has(file)) {
+                                queued.add(file);
+                                queue.push(file);
+                                pump();
+                            }
+                        }, 1500);
+                    } else {
+                        notifyFailure(file, errorInfo);
+                        pump();
+                    }
+                }
+            );
+        }
+
+        function pump() {
+            if (!running) return;
+            while (active < SCENE_PRELOAD_CONCURRENCY && queue.length > 0) {
+                const file = queue.shift();
+                if (loaded.has(file) || loading.has(file)) {
+                    queued.delete(file);
+                    continue;
+                }
+                launch(file);
+            }
+        }
+
+        function start(files) {
+            running = true;
+            enqueue(files, false);
+            pump();
+        }
+
+        return {
+            start, enqueue, prioritize, whenLoaded, markLoaded,
+            isLoaded, isLoading, loadedCount,
+            normalize: norm
+        };
+    })();
+
+    function rotateArray(arr, shift) {
+        const n = arr.length;
+        const s = ((shift % n) + n) % n;
+        return arr.slice(s).concat(arr.slice(0, s));
+    }
+
+    function setupAssistantLabels() {
+        assistantLabelMap = {
+            A: CONFIGS[0],
+            B: CONFIGS[1],
+            C: CONFIGS[2],
+            D: CONFIGS[3]
+        };
+        configToLabel = {
+            AbilityOriented: 'A',
+            EmotionOriented: 'B',
+            BalancedBaseline: 'C',
+            LowLow: 'D'
+        };
+    }
+
+    /* 48个正式试次 = 12个驾驶刺激 × 4种助手配置。
+       每个刺激在4个block中恰好与4种助手各配对1次；每个block中四种助手各出现3次。
+       这样对每名被试均完整覆盖4助手×2风险，并用A/B顺序版本轮换初始配对关系。 */
+    function buildFormalTrials() {
+        let all = [];
+        for (let b = 0; b < 4; b++) {
+            let blockOrder = rotateArray(BASE_STIMULI, (versionIndex * 2 + b * 3) % BASE_STIMULI.length);
+            if (b % 2 === 1) blockOrder = blockOrder.slice().reverse();
+
+            blockOrder.forEach((stim, displayPos) => {
+                const cfgIndex = (stim.stimIndex + b + versionIndex) % 4;
+                const cfg = CONFIGS[cfgIndex];
+                all.push({
+                    ...stim,
+                    block: b + 1,
+                    blockPosition: displayPos + 1,
+                    config: cfg,
+                    assistantLabel: configToLabel[cfg.key]
+                });
+            });
+        }
+        return all.map((trial, idx) => ({...trial, formalTrialOrder: idx + 1}));
+    }
+
+    function makeBars(level, type, small=false) {
+        let html = '';
+        for (let i=1; i<=3; i++) {
+            if (small) {
+                html += `<div class="mini-bar ${type} ${i <= level ? 'on' : ''}"></div>`;
+            } else {
+                const cls = i <= level ? (type === 'comp' ? 'block-filled-comp' : 'block-filled-warm') : 'block-empty';
+                html += `<div class="block ${cls}"></div>`;
+            }
+        }
+        return html;
+    }
+
+    function renderMatrix(config, layout) {
+        const compHTML = `
+            <div class="panel">
+                <div class="panel-title">能力属性</div>
+                <div class="attr-group"><div class="attr-name">感知功能</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+                <div class="attr-group"><div class="attr-name">预测功能</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+                <div class="attr-group"><div class="attr-name">执行功能</div><div class="block-container">${makeBars(config.abilityLevel,'comp')}</div></div>
+            </div>`;
+        const warmHTML = `
+            <div class="panel">
+                <div class="panel-title">情感属性</div>
+                <div class="attr-group"><div class="attr-name">觉察功能</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+                <div class="attr-group"><div class="attr-name">共情功能</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+                <div class="attr-group"><div class="attr-name">调节功能</div><div class="block-container">${makeBars(config.emotionLevel,'warm')}</div></div>
+            </div>`;
+        return layout === 'CompLeft' ? compHTML + warmHTML : warmHTML + compHTML;
+    }
+
+    function levelText(level) {
+        return level === 1 ? '低水平' : (level === 2 ? '标准水平' : '高水平');
+    }
+
+    function makeAssistantCard(label) {
+        const cfg = assistantLabelMap[label];
+        const profile = `${levelText(cfg.abilityLevel).replace('水平','')}能力属性 — ${levelText(cfg.emotionLevel).replace('水平','')}情感属性`;
+        return `
+            <div class="assistant-card">
+                <div class="assistant-card-title">智驾助手 ${label}</div>
+                <div class="assistant-profile">${profile}</div>
+                <div class="mini-dim-row">
+                    <div class="mini-dim-label" style="color:#4CAF50;">能力属性</div>
+                    <div class="mini-bars">${makeBars(cfg.abilityLevel,'comp',true)}</div>
+                </div>
+                <div class="mini-dim-row">
+                    <div class="mini-dim-label" style="color:#FF9800;">情感属性</div>
+                    <div class="mini-bars">${makeBars(cfg.emotionLevel,'warm',true)}</div>
+                </div>
+            </div>`;
+    }
+
+
+    /* =========================================================
+       2. 页面节点
+       ========================================================= */
+    function createBaselineAllocationNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box center-guide" style="width:min(900px,90vw);">
+                    <div class="guide-title">点数分配任务</div>
+                    <div class="context-box">
+                        现在有一款智驾助手，它的<span class="highlight-text">能力属性</span>和<span class="highlight-text">情感属性</span>目前处于相同的基本水平。为了进一步提升驾驶体验，您现在拥有一次升级机会，可以为两类属性分配 <span class="highlight-text">10 个额外升级点</span>。请按照自己的偏好决定如何分配。
+                    </div>
+                    <div style="text-align:center;color:#ffcf8a;font-size:16px;font-weight:bold;line-height:1.55;margin-bottom:8px;">本任务只用于了解您对两类功能的个人偏好，不会影响后续实验。</div>
+                    <div style="text-align:center;color:#b0bec5;font-size:17px;">两类属性都至少保留1点；两边加起来始终为10点。</div>
+                    <div class="allocation-wrap">
+                        <div class="allocation-card comp">
+                            <div style="font-size:24px;font-weight:bold;color:#4CAF50;">能力属性</div>
+                            <div id="ability-score" class="allocation-score" style="color:#4CAF50;">5</div>
+                            <div class="allocation-controls"><button id="ability-minus" class="mini-btn">−</button><button id="ability-plus" class="mini-btn">＋</button></div>
+                        </div>
+                        <div class="allocation-card warm">
+                            <div style="font-size:24px;font-weight:bold;color:#FF9800;">情感属性</div>
+                            <div id="emotion-score" class="allocation-score" style="color:#FF9800;">5</div>
+                            <div style="height:44px;display:flex;align-items:center;justify-content:center;color:#888;">随能力点数自动变化</div>
+                        </div>
+                    </div>
+                    <div id="allocation-warn" class="warn-text"></div>
+                    <div style="text-align:center;"><button id="allocation-submit" class="action-btn">确认分配</button></div>
+                </div>
+            </div>`,
+            on_load: function() {
+                let a = 5;
+                const render = () => {
+                    document.getElementById('ability-score').innerText = a;
+                    document.getElementById('emotion-score').innerText = 10 - a;
+                };
+                document.getElementById('ability-minus').addEventListener('click', () => { if (a > 1) { a--; render(); } });
+                document.getElementById('ability-plus').addEventListener('click', () => { if (a < 9) { a++; render(); } });
+                document.getElementById('allocation-submit').addEventListener('click', () => {
+                    baselineAbility = a;
+                    baselineEmotion = 10 - a;
+                    jsPsych.finishTrial({
+                        Event_Type:'Baseline_Allocation',
+                        Baseline_Ability_Points: baselineAbility,
+                        Baseline_Emotion_Points: baselineEmotion
+                    });
+                });
+            }
+        };
+    }
+
+    function createAssistantIntroNode() {
+        const legendBars = (level) => `
+            <div class="legend-bars">
+                ${[1,2,3].map(i => `<span class="legend-bar ${i <= level ? 'on' : ''}"></span>`).join('')}
+            </div>`;
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container" style="justify-content:flex-start;">
+                <div class="guide-title" style="margin-bottom:12px;">了解能量条和四款智驾助手</div>
+                <div class="level-legend">
+                    <div style="text-align:center;margin-bottom:8px;font-weight:bold;">能量条越多，表示对应功能水平越高：</div>
+                    <div class="legend-levels">
+                        <div class="legend-level">${legendBars(1)}<b>低水平</b></div>
+                        <div class="legend-level">${legendBars(2)}<b>标准水平</b></div>
+                        <div class="legend-level">${legendBars(3)}<b>高水平</b></div>
+                    </div>
+                    <div style="margin-top:9px;text-align:center;color:#ffcf8a;font-weight:bold;">六项功能之间没有高低之分。</div>
+                </div>
+                <div style="width:min(1080px,92vw);font-size:17px;color:#e0e0e0;line-height:1.5;margin-bottom:11px;text-align:center;font-weight:bold;">
+                    请了解下面四款智驾助手
+                </div>
+                <div class="assistant-grid">
+                    ${makeAssistantCard('A')}
+                    ${makeAssistantCard('B')}
+                    ${makeAssistantCard('C')}
+                    ${makeAssistantCard('D')}
+                </div>
+                <div style="width:min(1080px,92vw);text-align:center;margin:12px auto 0;color:#ffcf8a;font-size:15px;line-height:1.45;">
+                    请留意每款助手的<span style="color:#4CAF50;font-weight:bold;">能力属性</span>和<span style="color:#FF9800;font-weight:bold;">情感属性</span>分别处于什么水平。
+                </div>
+                <div style="text-align:center;margin:15px 0 8px;"><button id="assistant-continue" class="continue-btn">继续</button></div>
+            </div>`,
+            data: {Event_Type:'Assistant_Introduction'},
+            on_load: function() {
+                document.getElementById('assistant-continue').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        };
+    }
+
+    function createPracticeInstructionNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box center-guide">
+                    <div class="guide-title">先熟悉一下操作</div>
+                    <div class="context-box">
+                        接下来的练习页面与正式体验的<span class="highlight-text">排版和操作方式完全一致</span>。练习只用于帮助您熟悉页面和操作。
+                    </div>
+                    <div style="background:#15151a;border:1px solid #444;border-radius:8px;padding:16px 20px;line-height:1.75;">
+                        每个场景后会连续出现两道评价题。<span class="highlight-text">先点击数字选择答案，再点击“确认并继续”</span>进入下一题。<br>
+                        <span style="color:#9e9e9e;font-size:15px;">练习内容不计入正式结果。</span>
+                    </div>
+                </div>
+                <div style="margin-top:20px;"><button id="practice-start" class="continue-btn">开始练习</button></div>
+            </div>`,
+            data: {Event_Type:'Practice_Instruction'},
+            on_load: function() {
+                document.getElementById('practice-start').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        };
+    }
+
+
+    function createFormalInstructionNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box center-guide">
+                    <div class="guide-title">正式体验即将开始</div>
+                    <div class="context-box">
+                        请想象您现在是一名乘客，正坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。车辆将经过不同道路，每一路段的<span class="highlight-text">智驾助手仅负责当前道路的驾驶</span>。请结合眼前的路况和助手表现，按照自己的第一感受完成评价。
+                    </div>
+                    <div style="background:#3a2b1f;border:1px solid #8a6034;border-radius:8px;padding:13px 18px;line-height:1.6;margin-bottom:12px;color:#ffe0b2;font-weight:bold;">
+                        在本次体验设定中，<span class="highlight-text">无论功能水平如何，四款智驾助手都具备完整的安全驾驶能力，均能保障乘客安全</span>。
+                    </div>
+                    <div class="guide-rules" style="background:#15151a;border:1px solid #444;border-radius:8px;padding:17px 20px;line-height:1.75;">
+                        <div style="margin-bottom:9px;"><span class="highlight-text">① 每个道路场景都是一次独立的乘车体验</span>，前后场景互不关联；每个场景只对应画面中当前的智驾助手。</div>
+                        <div style="margin-bottom:9px;"><span class="highlight-text">② 能量条只表示当前智驾助手的功能水平</span>，六项功能之间没有高低之分。</div>
+                        <div><span class="highlight-text">③ 每个场景均有两道评价题</span>，请根据第一感受作答；选择答案后，再点击“确认并继续”。</div>
+                    </div>
+                </div>
+                <div style="margin-top:20px;"><button id="formal-start" class="continue-btn">开始正式体验</button></div>
+            </div>`,
+            data: {Event_Type:'Formal_Instruction'},
+            on_load: function() {
+                document.getElementById('formal-start').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        };
+    }
+
+
+    function createRestNode() {
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box" style="text-align:center;">
+                    <div class="guide-title" style="color:#4CAF50;">已经完成一半，请休息片刻</div>
+                    <div style="font-size:22px;line-height:1.9;color:#ddd;">
+                        您已经完成一半的道路体验，请适当放松眼睛和身体。<br><br>
+                        继续后操作方式不变：查看当前路况和智驾助手的功能水平，再依次完成两道评价题。
+                    </div>
+                </div>
+                <div style="margin-top:24px;"><button id="rest-continue" class="continue-btn">继续实验</button></div>
+            </div>`,
+            data: {Event_Type:'Rest_Break'},
+            on_load: function() {
+                document.getElementById('rest-continue').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        };
+    }
+
+
+    /* =========================================================
+       驾驶场景图片：最简稳定方案
+       ---------------------------------------------------------
+       不做任何预加载。每个 jsPsych trial 仅通过普通 DOM <img>
+       请求当前这一张图片；图片成功显示后才开放评分操作。
+       ========================================================= */
+    function renderSceneImage(imageName) {
+        const safeName = String(imageName || '').replace(/[^A-Za-z0-9_.-]/g, '');
+        const src = `img/${safeName}`;
+        return `<div class="scene-image-frame">
+                    <div id="scene-load-hint" class="scene-load-hint">正在准备当前驾驶场景，请稍候…</div>
+                    <img id="scene-image" class="scene-image" data-src="${src}" alt="驾驶场景" decoding="async">
+                </div>`;
+    }
+
+    /* =========================================================
+       3. 试次生成：10%情境 + 35%图片 + 30%属性矩阵 + 25%动态评分
+       ========================================================= */
+    function createRatingTrialNode(trialData, isFormal=true) {
+        const matrixHTML = renderMatrix(trialData.config, spatialLayout);
+        const assistantDisplay = isFormal ? `本路段由智驾助手 ${trialData.assistantLabel} 负责驾驶` : '本路段由练习助手负责驾驶';
+        const question1 = '我完全信任这款智驾助手';
+        const question2 = '在当前路况下，我愿意选择这款智驾助手完成这段行程';
+        const ratingButtons = [1,2,3,4,5].map(score => `<button class="rating-option" data-score="${score}" disabled>${score}</button>`).join('');
+
+        return {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="trial-shell">
+                <div style="flex:0 0 10%;width:100%;display:flex;align-items:center;justify-content:flex-start;background:#15151a;font-size:clamp(16px,1.35vw,26px);font-weight:bold;color:#fff;padding:0 clamp(16px,4vw,55px);box-sizing:border-box;border-bottom:2px solid #333;overflow:hidden;">
+                    <span style="display:block;width:100%;line-height:1.4;">${trialData.text}</span>
+                </div>
+
+                <div style="flex:0 0 35%;width:100%;display:flex;justify-content:center;align-items:center;background:#15151a;box-sizing:border-box;padding:8px 0;">
+                    ${renderSceneImage(trialData.image)}
+                </div>
+
+                <div style="flex:0 0 30%;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:#1e1e24;box-sizing:border-box;border-top:2px solid #333;border-bottom:2px solid #444;padding:7px 0 4px;">
+                    <div class="assistant-badge">${assistantDisplay}</div>
+                    <div class="matrix-shell">${matrixHTML}</div>
+                </div>
+
+                <div class="rating-zone" style="flex:0 0 25%;width:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#2b2b36;box-sizing:border-box;padding:20px 12px 6px;overflow:hidden;">
+                    <div id="rating-progress" class="rating-progress">第 1 题 / 共 2 题</div>
+                    <button id="rating-back" class="rating-back hidden" type="button">返回上一题</button>
+                    <div id="rating-question" class="rating-question">${question1}</div>
+                    <div id="rating-options" class="rating-options">${ratingButtons}</div>
+                    <div class="rating-anchors"><span>1 非常不赞同</span><span>3 一般</span><span>5 非常赞同</span></div>
+                    <button id="rating-confirm" class="rating-confirm" disabled>确认并继续</button>
+                </div>
+            </div>`,
+            on_load: function() {
+                let totalStart = null;
+                let phase = 1;
+                let phaseStart = null;
+                let trustDraft = null;
+                let coopDraft = null;
+                let trustScore = null;
+                let coopScore = null;
+                let trustRT = 0;
+                let coopRT = 0;
+                let backToQ1Count = 0;
+
+                const options = Array.from(document.querySelectorAll('.rating-option'));
+                const confirmBtn = document.getElementById('rating-confirm');
+                const backBtn = document.getElementById('rating-back');
+                const questionEl = document.getElementById('rating-question');
+                const sceneImg = document.getElementById('scene-image');
+                const sceneHint = document.getElementById('scene-load-hint');
+                const imagePath = sceneImg ? sceneImg.dataset.src : `img/${trialData.image}`;
+                const imagePreloadedBeforeTrial = scenePreloader.isLoaded(imagePath);
+                const preloadLoadedCountAtTrialStart = scenePreloader.loadedCount();
+                const imageWaitStartedAt = Date.now();
+                let imageWaitMs = null;
+                let sceneReady = false;
+                let slowHintTimer = null;
+
+                function enableRatingsAfterImage() {
+                    if (sceneReady) return;
+                    sceneReady = true;
+                    imageWaitMs = Date.now() - imageWaitStartedAt;
+                    totalStart = Date.now();
+                    phaseStart = totalStart;
+                    scenePreloader.markLoaded(imagePath);
+                    if (slowHintTimer) clearTimeout(slowHintTimer);
+                    if (sceneHint) sceneHint.style.display = 'none';
+                    options.forEach(btn => btn.disabled = false);
+                }
+
+                function showImageError(error) {
+                    sceneReady = false;
+                    options.forEach(btn => btn.disabled = true);
+                    confirmBtn.disabled = true;
+                    if (sceneHint) {
+                        sceneHint.classList.add('error');
+                        sceneHint.style.display = 'flex';
+                        sceneHint.innerText = '当前驾驶场景暂未加载成功，正在重试…';
+                    }
+                    console.error('trial image load error', imagePath, error);
+                    setTimeout(() => requestCurrentImage(), 1800);
+                }
+
+                function attachActualImage() {
+                    if (!sceneImg || sceneReady) return;
+                    sceneImg.addEventListener('load', enableRatingsAfterImage, { once:true });
+                    sceneImg.addEventListener('error', showImageError, { once:true });
+                    sceneImg.src = imagePath;
+                    if (sceneImg.complete && sceneImg.naturalWidth > 0) {
+                        enableRatingsAfterImage();
+                    }
+                }
+
+                function requestCurrentImage() {
+                    if (!sceneImg || sceneReady) return;
+                    if (scenePreloader.isLoaded(imagePath)) {
+                        attachActualImage();
+                        return;
+                    }
+                    if (sceneHint) {
+                        sceneHint.classList.remove('error');
+                        sceneHint.style.display = 'flex';
+                        sceneHint.innerText = '正在准备当前驾驶场景，请稍候…';
+                    }
+                    scenePreloader.whenLoaded(
+                        imagePath,
+                        attachActualImage,
+                        function() {
+                            // 后台预加载若连续报错，则回退到当前 trial 的普通图片请求。
+                            attachActualImage();
+                        }
+                    );
+                }
+
+                slowHintTimer = setTimeout(() => {
+                    if (!sceneReady && sceneHint) {
+                        sceneHint.innerText = '当前网络较慢，驾驶场景仍在加载，请稍候…';
+                    }
+                }, 20000);
+
+                requestCurrentImage();
+
+                function renderSelection(value) {
+                    options.forEach(btn => btn.classList.toggle('selected', Number(btn.dataset.score) === value));
+                    confirmBtn.disabled = (!sceneReady || value === null);
+                }
+
+                function showPhase(nextPhase) {
+                    phase = nextPhase;
+                    phaseStart = Date.now();
+                    if (phase === 1) {
+                        document.getElementById('rating-progress').innerText = '第 1 题 / 共 2 题';
+                        questionEl.innerText = question1;
+                        questionEl.classList.remove('long-question');
+                        backBtn.classList.add('hidden');
+                        renderSelection(trustDraft);
+                    } else {
+                        document.getElementById('rating-progress').innerText = '第 2 题 / 共 2 题';
+                        questionEl.innerText = question2;
+                        questionEl.classList.add('long-question');
+                        backBtn.classList.remove('hidden');
+                        renderSelection(coopDraft);
+                    }
+                }
+
+                options.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const score = Number(this.dataset.score);
+                        if (phase === 1) trustDraft = score;
+                        else coopDraft = score;
+                        renderSelection(score);
+                    });
+                });
+
+                backBtn.addEventListener('click', function() {
+                    if (phase !== 2) return;
+                    coopRT += Date.now() - phaseStart;
+                    backToQ1Count++;
+                    showPhase(1);
+                });
+
+                confirmBtn.addEventListener('click', function() {
+                    if (phase === 1 && trustDraft === null) return;
+                    if (phase === 2 && coopDraft === null) return;
+                    if (phase === 1) {
+                        trustScore = trustDraft;
+                        trustRT += Date.now() - phaseStart;
+                        showPhase(2);
+                    } else {
+                        coopScore = coopDraft;
+                        coopRT += Date.now() - phaseStart;
+                        const imageBase = String(trialData.image || '').replace(/\.png$/i,'');
+                        const numMatch = imageBase.match(/(\d+)$/);
+                        const sceneNum = numMatch ? Number(numMatch[1]) : trialData.scene;
+                        const imageNumber = trialData.risk === 'High' ? sceneNum : (trialData.risk === 'Low' ? 6 + sceneNum : 0);
+                        const seqName = versionIndex === 0 ? 'A' : 'B';
+
+                        const result = {
+                            Event_Type: isFormal ? 'Formal_Trial' : 'Practice_Trial',
+                            Subject_ID: currentSubjectId,
+                            DataPipe_Condition: dataPipeCondition,
+                            Sequence: seqName,
+                            Spatial_Layout: spatialLayout,
+                            Formal_Trial_Order: isFormal ? trialData.formalTrialOrder : 0,
+                            Block: isFormal ? trialData.block : 0,
+                            Block_Position: isFormal ? trialData.blockPosition : 0,
+                            Image_Number: imageNumber,
+                            Image_ID: imageBase,
+                            Image_File: trialData.image,
+                            Scene_ID: trialData.scene,
+                            Risk_Level: trialData.risk,
+                            Assistant_Label: isFormal ? trialData.assistantLabel : 'Practice',
+                            Config_Code: `${trialData.config.abilityLevel}/${trialData.config.emotionLevel}`,
+                            Config_Type: trialData.config.key,
+                            Config_Name_CN: trialData.config.internalName,
+                            Ability_Level: trialData.config.abilityLevel,
+                            Emotion_Level: trialData.config.emotionLevel,
+                            Trust_Score: trustScore,
+                            Trust_RT_ms: trustRT,
+                            Cooperation_Score: coopScore,
+                            Cooperation_RT_ms: coopRT,
+                            Back_to_Q1_Count: backToQ1Count,
+                            Total_Trial_Time_ms: totalStart === null ? null : Date.now() - totalStart,
+                            Image_Preloaded_Before_Trial: imagePreloadedBeforeTrial ? 1 : 0,
+                            Image_Wait_ms: imageWaitMs,
+                            Preload_Loaded_Count_At_Trial_Start: preloadLoadedCountAtTrialStart,
+                            Baseline_Ability_Points: baselineAbility,
+                            Baseline_Emotion_Points: baselineEmotion
+                        };
+                        jsPsych.finishTrial(result);
+                    }
+                });
+            }
+        };
+    }
+
+
+    /* =========================================================
+       浏览器环境守卫
+       微信内置浏览器在当前真实测试中出现长时间资源挂起，因此正式实验要求系统浏览器。
+       ========================================================= */
+    function isWeChatWebView() {
+        return /MicroMessenger/i.test(navigator.userAgent || '');
+    }
+
+    function setupBrowserGuard() {
+        const blocker = document.getElementById('wechat-blocker');
+        const urlBox = document.getElementById('wechat-current-url');
+        const copyBtn = document.getElementById('wechat-copy-btn');
+        if (urlBox) urlBox.innerText = window.location.href;
+
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                const text = window.location.href;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    copyBtn.innerText = '已复制，请粘贴到系统浏览器';
+                } catch (e) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (_) {}
+                    document.body.removeChild(ta);
+                    copyBtn.innerText = '已尝试复制，请粘贴到系统浏览器';
+                }
+            });
+        }
+
+        if (isWeChatWebView() && blocker) {
+            blocker.style.display = 'flex';
+        }
+    }
+
+    setupBrowserGuard();
+
+    /* =========================================================
+       4. 启动实验
+       ========================================================= */
+    async function startExperiment() {
+        if (isWeChatWebView()) {
+            document.getElementById('wechat-blocker').style.display = 'flex';
+            return;
+        }
+        const inputVal = document.getElementById('subject-id-input').value.trim();
+        if (!inputVal || !/^[A-Za-z0-9_-]{1,30}$/.test(inputVal)) {
+            alert('请输入有效的被试编号（仅使用字母、数字、下划线或短横线）。');
+            return;
+        }
+
+        currentSubjectId = inputVal;
+
+        const startButton = document.querySelector('.login-btn');
+        const originalButtonText = startButton.innerText;
+        startButton.disabled = true;
+        startButton.innerText = '正在连接实验服务器…';
+
+        try {
+            dataPipeCondition = await getDataPipeCondition();
+            if (dataPipeCondition < 0 || dataPipeCondition > 3) {
+                throw new Error(`收到未预期的条件编号：${dataPipeCondition}。请确认 DataPipe 的条件数设置为 4。`);
+            }
+        } catch (error) {
+            console.error(error);
+            startButton.disabled = false;
+            startButton.innerText = originalButtonText;
+            if (DATAPIPE_REQUIRED) {
+                alert('暂时无法连接实验服务器或获取平衡条件，请检查网络后重试。\n\n' + (error.message || error));
+                return;
+            } else {
+                // 仅供本地开发测试：DataPipe 不可用时按被试编号回退。
+                dataPipeCondition = Array.from(String(currentSubjectId)).reduce((a,c)=>a+c.charCodeAt(0),0) % 4;
+            }
+        }
+
+        // 4个在线条件 = 2套正式试次顺序（A/B） × 2种左右布局。
+        // 四个助手的字母标签固定，不参与版本平衡。
+        versionIndex = Math.floor(dataPipeCondition / 2); // 0=SeqA, 1=SeqB
+        spatialLayout = (dataPipeCondition % 2 === 0) ? 'CompLeft' : 'WarmthLeft';
+        setupAssistantLabels();
+        const seqName = versionIndex === 0 ? 'SeqA' : 'SeqB';
+        currentVersion = `DP${dataPipeCondition}_${seqName}_${spatialLayout}_FixedLabels`;
+
+        jsPsych.data.addProperties({
+            Subject_ID: currentSubjectId,
+            Session_UUID: sessionUUID,
+            DataPipe_Condition: dataPipeCondition,
+            Version: currentVersion,
+            Spatial_Layout: spatialLayout
+        });
+
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('jspsych-target').innerHTML = '';
+
+        const formalTrials = buildFormalTrials();
+        const practiceTrial = {
+            image:'test.png', risk:'Practice', scene:0, stimIndex:-1,
+            text:'【练习】请先看看当前路况和智驾助手的功能水平，再根据自己的感受完成评价。',
+            config:{ key:'PracticeBalanced', internalName:'练习配置', abilityLevel:2, emotionLevel:2 },
+            assistantLabel:'Practice'
+        };
+
+        // 资源优先级：练习图最先；正式图片按“该版本第一次真正出现的顺序”排队。
+        const firstUseFormalImages = [];
+        const seenFormalImages = new Set();
+        formalTrials.forEach(t => {
+            const path = `img/${t.image}`;
+            if (!seenFormalImages.has(path)) {
+                seenFormalImages.add(path);
+                firstUseFormalImages.push(path);
+            }
+        });
+        const scenePriorityQueue = ['img/test.png', ...firstUseFormalImages];
+
+        // 关键：不等待13张全部完成。滚动预加载在后台进行，实验前半段立即开始。
+        scenePreloader.start(scenePriorityQueue);
+
+        let timeline = [];
+
+        /* =========================================================
+           jsPsych 主流程立即启动；场景图片由官方 pluginAPI 在后台滚动预加载。
+           当前 trial 如遇尚未完成的图片，会在图片就绪后才开放评分并开始计时。
+           ========================================================= */
+
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-box center-guide">
+                    <div class="guide-title">欢迎参加智驾乘车体验</div>
+                    <div class="context-box">
+                        请想象您是一名乘客，正坐在一辆<span class="highlight-text">无人智驾车辆的后排</span>。接下来您会体验不同的道路场景，并了解负责当前路段驾驶的智驾助手。请根据看到的路况和自己的乘坐感受完成评价。
+                    </div>
+                    智驾助手包含两类主要功能：<br>
+                    <span style="color:#4CAF50;font-weight:bold;">能力属性</span>：感知、预测和执行。<br>
+                    <span style="color:#FF9800;font-weight:bold;">情感属性</span>：觉察、共情和调节。<br><br>
+                    <b>本次体验包含五个环节：</b><br>
+                    ① 了解和认识智驾助手的两类功能<br>
+                    ② 进行点数分配任务<br>
+                    ③ 了解能量条和四款智驾助手<br>
+                    ④ 完成练习环节<br>
+                    ⑤ 开始正式驾驶体验
+                </div>
+                <div style="margin-top:24px;"><button id="welcome-continue" class="continue-btn">开始实验</button></div>
+            </div>`,
+            data: {Event_Type:'Welcome'},
+            on_load: function() {
+                document.getElementById('welcome-continue').addEventListener('click', () => jsPsych.finishTrial());
+            }
+        });
+
+        /* 概念学习：能力 */
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-title">了解“能力属性”</div>
+                <div class="concept-cards">
+                    <div class="concept-card"><h3>感知功能：看清当前环境</h3><p>识别道路、车辆、行人、交通灯等当前环境信息，并感知车内相关状态。</p></div>
+                    <div class="concept-card"><h3>预测功能：判断接下来可能发生什么</h3><p>根据当前信息预判接下来可能发生的变化，例如旁车加塞、前车急刹等风险。</p></div>
+                    <div class="concept-card"><h3>执行功能：做出并完成驾驶操作</h3><p>综合环境与风险信息形成驾驶决策，并自主完成路线规划、制动、转向等操作。</p></div>
+                </div>
+                <div class="quiz-section">
+                    <b>理解测验：</b>“汽车在高速上行驶时，系统判断右前方货车接下来可能压线并入本车道，并提前做好减速准备。”这主要体现了哪项功能？
+                    <div class="quiz-options">
+                        <button class="quiz-option" data-answer="1">1　感知功能</button>
+                        <button class="quiz-option" data-answer="2">2　预测功能</button>
+                        <button class="quiz-option" data-answer="3">3　执行功能</button>
+                    </div>
+                    <div id="ability-feedback" class="warn-text" style="color:#b0bec5;">请选择一个答案。</div>
+                    <div style="text-align:center;"><button id="ability-continue" class="continue-btn" disabled>继续</button></div>
+                </div>
+            </div>`,
+            data: {Event_Type:'Concept_Ability'},
+            on_load: function() {
+                let attempts = 0;
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        attempts++;
+                        document.querySelectorAll('.quiz-option').forEach(x => x.classList.remove('selected','correct','wrong'));
+                        this.classList.add('selected');
+                        const correct = this.dataset.answer === '2';
+                        this.classList.add(correct ? 'correct' : 'wrong');
+                        document.getElementById('ability-feedback').style.color = correct ? '#4CAF50' : '#ffb74d';
+                        document.getElementById('ability-feedback').innerText = correct ? '回答正确：这里强调的是对接下来风险变化的预判。' : '请再想一想：题干强调的是“接下来可能发生什么”。';
+                        document.getElementById('ability-continue').disabled = !correct;
+                    });
+                });
+                document.getElementById('ability-continue').addEventListener('click', () => jsPsych.finishTrial({Ability_Quiz_Attempts:attempts, Ability_Quiz_Correct:1}));
+            }
+        });
+
+        /* 概念学习：情感 */
+        timeline.push({
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'NO_KEYS',
+            stimulus: `
+            <div class="fullscreen-container">
+                <div class="guide-title">了解“情感属性”</div>
+                <div class="concept-cards">
+                    <div class="concept-card warmth"><h3>觉察功能：发现乘客当前状态</h3><p>通过面部、语音、姿态等信息识别乘客当前的疲惫、焦虑、平静等状态。</p></div>
+                    <div class="concept-card warmth"><h3>共情功能：理解并回应乘客感受</h3><p>理解乘客为什么产生相应感受，并通过适当语言表达理解、关心和回应。</p></div>
+                    <div class="concept-card warmth"><h3>调节功能：帮助改善乘坐体验</h3><p>根据乘客状态采取灯光、音乐、空调或减少打扰等措施，帮助改善乘坐体验。</p></div>
+                </div>
+                <div class="quiz-section">
+                    <b>理解测验：</b>“系统识别到乘客较疲惫后，主动调低空调风量并减少语音播报，让车内保持安静。”这主要体现了哪项功能？
+                    <div class="quiz-options">
+                        <button class="quiz-option" data-answer="1">1　觉察功能</button>
+                        <button class="quiz-option" data-answer="2">2　共情功能</button>
+                        <button class="quiz-option" data-answer="3">3　调节功能</button>
+                    </div>
+                    <div id="emotion-feedback" class="warn-text" style="color:#b0bec5;">请选择一个答案。</div>
+                    <div style="text-align:center;"><button id="emotion-continue" class="continue-btn" disabled>继续</button></div>
+                </div>
+            </div>`,
+            data: {Event_Type:'Concept_Emotion'},
+            on_load: function() {
+                let attempts = 0;
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        attempts++;
+                        document.querySelectorAll('.quiz-option').forEach(x => x.classList.remove('selected','correct','wrong'));
+                        this.classList.add('selected');
+                        const correct = this.dataset.answer === '3';
+                        this.classList.add(correct ? 'correct' : 'wrong');
+                        document.getElementById('emotion-feedback').style.color = correct ? '#4CAF50' : '#ffb74d';
+                        document.getElementById('emotion-feedback').innerText = correct ? '回答正确：这里已经根据乘客状态采取了具体调节措施。' : '请再想一想：题干强调的是系统已经采取了改善体验的具体措施。';
+                        document.getElementById('emotion-continue').disabled = !correct;
+                    });
+                });
+                document.getElementById('emotion-continue').addEventListener('click', () => jsPsych.finishTrial({Emotion_Quiz_Attempts:attempts, Emotion_Quiz_Correct:1}));
+            }
+        });
+
+        timeline.push(createBaselineAllocationNode());
+        timeline.push(createAssistantIntroNode());
+        timeline.push(createPracticeInstructionNode());
+        timeline.push(createRatingTrialNode(practiceTrial, false));
+        timeline.push(createFormalInstructionNode());
+
+        for (let i=0; i<formalTrials.length; i++) {
+            timeline.push(createRatingTrialNode(formalTrials[i], true));
+            if (i === 23) timeline.push(createRestNode());
+        }
+
+        jsPsych.run(timeline);
+    }
+</script>
+</body>
+</html>
