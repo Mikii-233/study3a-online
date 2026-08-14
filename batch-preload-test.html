@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Study3a 三图分批预加载测试</title>
+  <script src="jspsych/jspsych.js"></script>
+  <link rel="stylesheet" href="jspsych/jspsych.css">
+  <style>
+    html,body{margin:0;min-height:100%;background:#1e1e24;color:#e8e8e8;font-family:Arial,"Microsoft YaHei",sans-serif}
+    body{padding:24px 16px 48px;box-sizing:border-box}.wrap{width:min(760px,94vw);margin:0 auto}
+    .card{background:#2b2b36;border:1px solid #444;border-radius:14px;padding:22px;box-sizing:border-box;margin-bottom:16px}
+    h1{margin:0 0 12px;font-size:clamp(26px,6vw,36px);color:#64b5f6;text-align:center}.desc{line-height:1.75;color:#cfd8dc;font-size:16px}
+    .status{margin-top:18px;font-size:18px;font-weight:bold;color:#ffb74d}.bar-bg{height:14px;background:#15151a;border:1px solid #555;border-radius:999px;overflow:hidden;margin-top:14px}
+    .bar{width:0%;height:100%;background:#4CAF50;transition:width .25s ease}.count{text-align:center;margin-top:10px;font-size:20px}
+    button{display:block;width:min(360px,90%);min-height:52px;margin:18px auto 0;border:0;border-radius:10px;background:#4CAF50;color:white;font-size:19px;font-weight:bold}
+    button:disabled{opacity:.45}.batch{border-top:1px solid #444;padding:12px 0;line-height:1.65}.batch:first-child{border-top:0}.ok{color:#66d17a}.warn{color:#ffb74d}.bad{color:#ff7043}
+    .small{font-size:13px;color:#8e98a5;word-break:break-all}#log{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto;background:#15151a;padding:12px;border-radius:8px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>三图分批预加载测试</h1>
+    <div class="desc">本页面只测试 <b>jsPsych.pluginAPI.preloadImages()</b>。<br>13 张原始 PNG 不压缩、不转格式；每批最多 3 张，当前批全部成功后才启动下一批。<br>建议先用 5G/4G 测试，再换 Wi‑Fi 对照。</div>
+    <div id="status" class="status">尚未开始</div>
+    <div class="bar-bg"><div id="bar" class="bar"></div></div>
+    <div id="count" class="count">0 / 13</div>
+    <button id="start-btn">开始 3 张 × 分批测试</button>
+    <button id="retry-btn" style="display:none;background:#ff9800;">重试当前批次</button>
+  </div>
+  <div class="card"><div style="font-weight:bold;margin-bottom:8px;">批次结果</div><div id="batch-results"></div></div>
+  <div class="card"><div style="font-weight:bold;margin-bottom:8px;">详细日志</div><div id="log"></div></div>
+</div>
+<script>
+  const jsPsych = initJsPsych();
+  const allImages = [
+    'img/test.png','img/high1.png','img/high2.png','img/high3.png','img/high4.png','img/high5.png','img/high6.png',
+    'img/low1.png','img/low2.png','img/low3.png','img/low4.png','img/low5.png','img/low6.png'
+  ];
+  const BATCH_SIZE = 3;
+  const BATCH_TIMEOUT_MS = 120000;
+  const batches=[]; for(let i=0;i<allImages.length;i+=BATCH_SIZE){batches.push(allImages.slice(i,i+BATCH_SIZE));}
+  let currentBatchIndex=0,totalLoaded=0,loadedSet=new Set(),currentTimer=null,testStart=null,currentBatchStart=null,stopped=false;
+  const statusEl=document.getElementById('status'),countEl=document.getElementById('count'),barEl=document.getElementById('bar'),resultsEl=document.getElementById('batch-results'),logEl=document.getElementById('log'),startBtn=document.getElementById('start-btn'),retryBtn=document.getElementById('retry-btn');
+  function nowText(){return new Date().toLocaleTimeString();}
+  function log(msg){logEl.textContent+=`[${nowText()}] ${msg}\n`;logEl.scrollTop=logEl.scrollHeight;}
+  function updateProgress(){totalLoaded=loadedSet.size;countEl.textContent=`${totalLoaded} / ${allImages.length}`;barEl.style.width=`${(totalLoaded/allImages.length)*100}%`;}
+  function addBatchResult(index,html){let el=document.getElementById(`batch-${index}`);if(!el){el=document.createElement('div');el.id=`batch-${index}`;el.className='batch';resultsEl.appendChild(el);}el.innerHTML=html;}
+  function resetTest(){if(currentTimer)clearTimeout(currentTimer);try{jsPsych.pluginAPI.cancelPreloads();}catch(e){} currentBatchIndex=0;totalLoaded=0;loadedSet=new Set();currentTimer=null;testStart=performance.now();currentBatchStart=null;stopped=false;resultsEl.innerHTML='';logEl.textContent='';retryBtn.style.display='none';updateProgress();}
+  function finishAll(){if(currentTimer)clearTimeout(currentTimer);const totalSec=((performance.now()-testStart)/1000).toFixed(1);statusEl.innerHTML=`<span class="ok">全部完成：13 / 13，总耗时 ${totalSec} 秒</span>`;log(`全部 13 张加载完成。总耗时 ${totalSec}s`);startBtn.disabled=false;startBtn.textContent='重新测试';retryBtn.style.display='none';}
+  function failCurrentBatch(reason){if(stopped)return;stopped=true;if(currentTimer)clearTimeout(currentTimer);try{jsPsych.pluginAPI.cancelPreloads();}catch(e){} const batchNo=currentBatchIndex+1;statusEl.innerHTML=`<span class="bad">第 ${batchNo} 批未能完成：${reason}</span>`;log(`第 ${batchNo} 批停止：${reason}`);retryBtn.style.display='block';startBtn.disabled=false;}
+  function loadBatch(index){stopped=false;if(index>=batches.length){finishAll();return;} currentBatchIndex=index;const batch=batches[index],batchNo=index+1,batchTotal=batches.length,loadedThisBatch=new Set();currentBatchStart=performance.now();statusEl.textContent=`正在加载第 ${batchNo} / ${batchTotal} 批：${batch.length} 张`;log(`开始第 ${batchNo} 批：${batch.join(', ')}`);addBatchResult(index,`<b>第 ${batchNo} 批</b>：<span class="warn">加载中</span><br><span class="small">${batch.join(' · ')}</span>`);if(currentTimer)clearTimeout(currentTimer);currentTimer=setTimeout(()=>{const sec=((performance.now()-currentBatchStart)/1000).toFixed(1);failCurrentBatch(`超过 ${BATCH_TIMEOUT_MS/1000} 秒仍未完成；本批已成功 ${loadedThisBatch.size}/${batch.length}，耗时 ${sec}s`);},BATCH_TIMEOUT_MS);
+    jsPsych.pluginAPI.preloadImages(batch,
+      function(){if(stopped)return;if(currentTimer)clearTimeout(currentTimer);const sec=((performance.now()-currentBatchStart)/1000).toFixed(1);addBatchResult(index,`<b>第 ${batchNo} 批</b>：<span class="ok">完成 ${batch.length}/${batch.length}</span>，耗时 ${sec}s<br><span class="small">${batch.join(' · ')}</span>`);log(`第 ${batchNo} 批完成，耗时 ${sec}s`);setTimeout(()=>loadBatch(index+1),350);},
+      function(file){loadedThisBatch.add(file);loadedSet.add(file);updateProgress();const sec=((performance.now()-currentBatchStart)/1000).toFixed(1);log(`成功：${file}；本批 ${loadedThisBatch.size}/${batch.length}；${sec}s`);},
+      function(errorInfo){const source=errorInfo&&errorInfo.source?errorInfo.source:String(errorInfo);log(`错误：${source}`);failCurrentBatch(`图片发生 error：${source}`);}
+    );
+  }
+  startBtn.addEventListener('click',function(){resetTest();startBtn.disabled=true;startBtn.textContent='测试进行中…';statusEl.textContent='准备开始';loadBatch(0);});
+  retryBtn.addEventListener('click',function(){retryBtn.style.display='none';startBtn.disabled=true;stopped=false;log(`重试第 ${currentBatchIndex+1} 批`);loadBatch(currentBatchIndex);});
+</script>
+</body>
+</html>
