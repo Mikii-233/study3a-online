@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>智能驾驶体验</title>
+<style>
+:root{--bg:#1e1e24;--card:#2b2b36;--line:#444854;--text:#f2f3f5;--muted:#aeb6c0;--blue:#64b5f6;--green:#4caf50;--orange:#ffb74d}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif}
+body{padding:max(14px,env(safe-area-inset-top)) 12px max(28px,env(safe-area-inset-bottom))}
+.wrap{width:min(860px,100%);margin:auto} .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+h1{text-align:center;margin:2px 0 8px;font-size:clamp(26px,7vw,38px)} .subtitle{text-align:center;color:var(--muted);font-size:14px;line-height:1.6}
+.step{font-size:18px;font-weight:800;color:var(--blue);margin:16px 0 8px} .intro{font-size:15px;line-height:1.75;color:#d8dde3}
+.pidbox{background:#23232b;border:1px solid #525765;border-radius:14px;padding:16px;margin-top:12px;text-align:center}
+.pidlabel{font-size:14px;color:var(--muted);margin-bottom:6px} #pid{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:900;font-size:clamp(26px,8vw,38px);letter-spacing:1.5px;color:#fff}
+.hint{margin-top:10px;color:var(--orange);font-size:14px;line-height:1.65} .btns{display:grid;gap:10px;margin-top:14px}
+button,a.btn{width:100%;min-height:50px;border:0;border-radius:11px;font-size:17px;font-weight:800;padding:12px 14px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.primary{background:var(--green);color:#fff} .secondary{background:#3a4250;color:#fff;border:1px solid #56606f} .ghost{background:transparent;color:#aeb6c0;border:1px solid #4a4f59}
+button:disabled{opacity:.42} .status{min-height:22px;text-align:center;color:#66d17a;font-size:14px;margin-top:8px}
+.qcard{padding:0;overflow:hidden} .qhead{padding:16px 18px 12px;border-bottom:1px solid var(--line)} .iframewrap{height:min(72vh,760px);min-height:520px;background:#fff}
+iframe{display:block;width:100%;height:100%;border:0;background:#fff} .fallback{padding:12px 16px 16px;border-top:1px solid var(--line);font-size:13px;line-height:1.65;color:var(--muted)}
+.confirm{display:flex;gap:10px;align-items:flex-start;line-height:1.65;font-size:15px} .confirm input{width:22px;height:22px;margin-top:2px;accent-color:var(--green)}
+.note{border-left:4px solid var(--orange);background:#3a3427;border-radius:8px;padding:11px 12px;color:#f2e4c8;font-size:14px;line-height:1.65;margin-top:12px}
+.small{font-size:12px;color:#8d96a0;line-height:1.6;margin-top:10px}
+@media(min-width:700px){.btns.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="card">
+<h1>智能驾驶体验</h1>
+<div class="subtitle">请先完成前测问卷，再进入正式实验</div>
+<div class="step">第 1 步｜保存实验编号</div>
+<div class="intro">系统已为您生成匿名实验编号。请点击“复制实验编号”，并将其粘贴到下方问卷中的“实验编号”一栏。</div>
+<div class="pidbox"><div class="pidlabel">您的实验编号</div><div id="pid">生成中…</div><div class="hint">请勿修改编号；前测问卷与正式实验将通过该编号匹配。</div></div>
+<div class="btns two"><button id="copy" class="primary">复制实验编号</button><button id="scroll" class="secondary">开始填写前测问卷</button></div>
+<div id="copyStatus" class="status"></div>
+<div class="note">如果问卷中还需要填写手机号或微信号，可以照常填写；<b>正式实验网页只保存匿名实验编号，不需要再次填写联系方式。</b></div>
+</section>
+
+<section id="questionnaire" class="card qcard">
+<div class="qhead"><div class="step" style="margin:0 0 6px">第 2 步｜完成前测问卷</div><div class="intro">请在问卷中粘贴上方实验编号，并完成全部题目后点击提交。</div></div>
+<div class="iframewrap"><iframe src="https://v.wjx.cn/vm/wFOC9BU.aspx#" title="前测问卷" loading="eager" allow="clipboard-read; clipboard-write"></iframe></div>
+<div class="fallback">如果某个浏览器中问卷区域无法正常显示，可单独打开问卷。完成后返回本页面即可，实验编号会保留。
+<div class="btns"><a class="btn secondary" href="https://v.wjx.cn/vm/wFOC9BU.aspx#" target="_blank" rel="noopener">单独打开问卷星</a></div></div>
+</section>
+
+<section class="card">
+<div class="step" style="margin-top:0">第 3 步｜进入正式实验</div>
+<div class="intro">问卷提交成功后，请返回这里并勾选确认项，然后进入正式实验。</div>
+<label class="confirm"><input id="done" type="checkbox"><span>我确认已经完成并提交前测问卷，且问卷中的实验编号与本页面显示一致。</span></label>
+<div class="btns"><button id="enter" class="primary" disabled>进入正式实验</button></div>
+<div class="small">为避免两份数据无法匹配，请不要在完成前测后更换浏览器或清除网页数据。</div>
+<div class="btns"><button id="newpid" class="ghost">仅在多人共用同一设备时：生成新的实验编号</button></div>
+</section>
+</main>
+
+<script>
+const KEY='study3a_participant_id_v1';
+const ALPH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function randomChars(n){
+  const a=new Uint32Array(n);
+  if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(a); else for(let i=0;i<n;i++) a[i]=Math.floor(Math.random()*1e9);
+  let s=''; for(let i=0;i<n;i++) s+=ALPH[a[i]%ALPH.length]; return s;
+}
+function makePid(){return '3A-'+randomChars(6)}
+function getPid(){
+  let p=localStorage.getItem(KEY);
+  if(!p||!/^3A-[A-Z2-9]{6}$/.test(p)){p=makePid();localStorage.setItem(KEY,p)}
+  return p;
+}
+let pid=getPid();
+const pidEl=document.getElementById('pid'), status=document.getElementById('copyStatus');
+function render(){pidEl.textContent=pid}
+async function copyPid(){
+  try{await navigator.clipboard.writeText(pid);status.textContent='已复制：'+pid}
+  catch(e){
+    const t=document.createElement('textarea');t.value=pid;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();
+    try{document.execCommand('copy');status.textContent='已复制：'+pid}catch(_){status.textContent='自动复制失败，请长按上方编号手动复制。'} t.remove();
+  }
+  setTimeout(()=>{if(status.textContent.startsWith('已复制'))status.textContent=''},3500);
+}
+document.getElementById('copy').onclick=copyPid;
+document.getElementById('scroll').onclick=async()=>{await copyPid();document.getElementById('questionnaire').scrollIntoView({behavior:'smooth',block:'start'})};
+const done=document.getElementById('done'), enter=document.getElementById('enter');
+done.onchange=()=>enter.disabled=!done.checked;
+enter.onclick=()=>{location.href='index.html?pid='+encodeURIComponent(pid)};
+document.getElementById('newpid').onclick=()=>{
+  if(!confirm('只有在这台设备需要由另一位新参与者重新开始时才生成新编号。\n\n确定生成新的实验编号吗？'))return;
+  pid=makePid();localStorage.setItem(KEY,pid);done.checked=false;enter.disabled=true;status.textContent='';render();scrollTo({top:0,behavior:'smooth'});
+};
+render();
+</script>
+</body>
+</html>
