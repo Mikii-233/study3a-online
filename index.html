@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>智能驾驶体验</title>
-    <!-- build: 2026-08-14-jspsych-rolling-preload-v2-formal-gate -->
+    <!-- build: 2026-08-15-jspsych-rolling-preload-v3-webp-wechat-test -->
     <script src="jspsych/jspsych.js"></script>
     <script src="plugins/plugin-html-keyboard-response.js"></script>
     <link rel="stylesheet" href="jspsych/jspsych.css">
@@ -846,7 +846,7 @@
             <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
             <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
             <button class="login-btn" onclick="startExperiment()">进入体验</button>
-            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych rolling preload v2 · formal gate</div>
+            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych rolling preload v3 · lossless WebP · WeChat enabled</div>
         </div>
     </div>
 
@@ -921,7 +921,7 @@
         'Assistant_Label','Config_Code','Config_Type','Config_Name_CN','Ability_Level','Emotion_Level',
         'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Back_to_Q1_Count','Total_Trial_Time_ms',
         'Image_Preloaded_Before_Trial','Image_Wait_ms','Preload_Loaded_Count_At_Trial_Start',
-        'Baseline_Ability_Points','Baseline_Emotion_Points'
+        'Baseline_Ability_Points','Baseline_Emotion_Points','Browser_Context','Image_Format'
     ];
 
     function csvEscape(value) {
@@ -1001,18 +1001,18 @@
     /* 12个驾驶刺激：6种场景 × 高/低风险，各1张。
        顺序沿用3b中已经人为拉开同类场景距离的排列。 */
     const BASE_STIMULI = [
-        { image:'high1.png', risk:'High', scene:1 },
-        { image:'low2.png',  risk:'Low',  scene:2 },
-        { image:'high3.png', risk:'High', scene:3 },
-        { image:'low4.png',  risk:'Low',  scene:4 },
-        { image:'low5.png',  risk:'Low',  scene:5 },
-        { image:'high6.png', risk:'High', scene:6 },
-        { image:'high2.png', risk:'High', scene:2 },
-        { image:'low3.png',  risk:'Low',  scene:3 },
-        { image:'low1.png',  risk:'Low',  scene:1 },
-        { image:'high4.png', risk:'High', scene:4 },
-        { image:'high5.png', risk:'High', scene:5 },
-        { image:'low6.png',  risk:'Low',  scene:6 }
+        { image:'high1.webp', risk:'High', scene:1 },
+        { image:'low2.webp',  risk:'Low',  scene:2 },
+        { image:'high3.webp', risk:'High', scene:3 },
+        { image:'low4.webp',  risk:'Low',  scene:4 },
+        { image:'low5.webp',  risk:'Low',  scene:5 },
+        { image:'high6.webp', risk:'High', scene:6 },
+        { image:'high2.webp', risk:'High', scene:2 },
+        { image:'low3.webp',  risk:'Low',  scene:3 },
+        { image:'low1.webp',  risk:'Low',  scene:1 },
+        { image:'high4.webp', risk:'High', scene:4 },
+        { image:'high5.webp', risk:'High', scene:5 },
+        { image:'low6.webp',  risk:'Low',  scene:6 }
     ].map((x, i) => ({...x, stimIndex:i, text:sceneText[x.scene]}));
 
     const jsPsych = initJsPsych({
@@ -1063,7 +1063,7 @@
        - 使用 jsPsych 官方 pluginAPI.preloadImages()
        - 同时最多 3 张；任一完成后立即补下一张
        - 不阻塞欢迎页/概念学习/点数分配等前半段流程
-       - test.png 优先；正式图片按该被试实际试次的首次出现顺序排队
+       - test.webp 优先；正式图片按该被试实际试次的首次出现顺序排队
        ========================================================= */
     const SCENE_PRELOAD_CONCURRENCY = 3;
 
@@ -1782,7 +1782,7 @@
                     } else {
                         coopScore = coopDraft;
                         coopRT += Date.now() - phaseStart;
-                        const imageBase = String(trialData.image || '').replace(/\.png$/i,'');
+                        const imageBase = String(trialData.image || '').replace(/\.(?:png|webp)$/i,'');
                         const numMatch = imageBase.match(/(\d+)$/);
                         const sceneNum = numMatch ? Number(numMatch[1]) : trialData.scene;
                         const imageNumber = trialData.risk === 'High' ? sceneNum : (trialData.risk === 'Low' ? 6 + sceneNum : 0);
@@ -1818,7 +1818,9 @@
                             Image_Wait_ms: imageWaitMs,
                             Preload_Loaded_Count_At_Trial_Start: preloadLoadedCountAtTrialStart,
                             Baseline_Ability_Points: baselineAbility,
-                            Baseline_Emotion_Points: baselineEmotion
+                            Baseline_Emotion_Points: baselineEmotion,
+                            Browser_Context: getBrowserContext(),
+                            Image_Format: 'lossless_webp'
                         };
                         jsPsych.finishTrial(result);
                     }
@@ -1829,42 +1831,28 @@
 
 
     /* =========================================================
-       浏览器环境守卫
-       微信内置浏览器在当前真实测试中出现长时间资源挂起，因此正式实验要求系统浏览器。
+       浏览器环境记录（不再阻止微信内置浏览器）
+       ---------------------------------------------------------
+       当前正式候选版允许微信、Safari、Chrome 等环境进入实验，
+       用于实测完整实验流程与 DataPipe 上传稳定性。
        ========================================================= */
     function isWeChatWebView() {
         return /MicroMessenger/i.test(navigator.userAgent || '');
     }
 
+    function getBrowserContext() {
+        if (isWeChatWebView()) return 'WeChat_WebView';
+        if (/CriOS|Chrome/i.test(navigator.userAgent || '')) return 'Chrome_or_Chromium';
+        if (/EdgiOS|EdgA|Edg/i.test(navigator.userAgent || '')) return 'Edge';
+        if (/Firefox|FxiOS/i.test(navigator.userAgent || '')) return 'Firefox';
+        if (/Safari/i.test(navigator.userAgent || '') && !/Chrome|CriOS|Edg|FxiOS/i.test(navigator.userAgent || '')) return 'Safari';
+        return 'Other';
+    }
+
     function setupBrowserGuard() {
+        // 本版本不阻止任何浏览器，只记录环境。
         const blocker = document.getElementById('wechat-blocker');
-        const urlBox = document.getElementById('wechat-current-url');
-        const copyBtn = document.getElementById('wechat-copy-btn');
-        if (urlBox) urlBox.innerText = window.location.href;
-
-        if (copyBtn) {
-            copyBtn.addEventListener('click', async () => {
-                const text = window.location.href;
-                try {
-                    await navigator.clipboard.writeText(text);
-                    copyBtn.innerText = '已复制，请粘贴到系统浏览器';
-                } catch (e) {
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    try { document.execCommand('copy'); } catch (_) {}
-                    document.body.removeChild(ta);
-                    copyBtn.innerText = '已尝试复制，请粘贴到系统浏览器';
-                }
-            });
-        }
-
-        if (isWeChatWebView() && blocker) {
-            blocker.style.display = 'flex';
-        }
+        if (blocker) blocker.style.display = 'none';
     }
 
     setupBrowserGuard();
@@ -1872,11 +1860,34 @@
     /* =========================================================
        4. 启动实验
        ========================================================= */
-    async function startExperiment() {
-        if (isWeChatWebView()) {
-            document.getElementById('wechat-blocker').style.display = 'flex';
-            return;
+
+    function getParticipantIdFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const pid = (params.get('pid') || '').trim();
+        return /^[A-Za-z0-9_-]{1,30}$/.test(pid) ? pid : '';
+    }
+
+    function applyParticipantIdFromURL() {
+        const pid = getParticipantIdFromURL();
+        if (!pid) return;
+
+        const input = document.getElementById('subject-id-input');
+        if (input) {
+            input.value = pid;
+            input.readOnly = true;
+            input.style.opacity = '0.92';
         }
+
+        const info = document.querySelector('#login-screen .login-box > div:nth-child(2)');
+        if (info) {
+            info.innerHTML = '已从前置问卷自动识别实验编号：<b style="color:#fff;">' + pid +
+                '</b><br><span style="font-size:14px;color:#8f9aa5;">请确认后点击“进入体验”。</span>';
+        }
+    }
+
+    applyParticipantIdFromURL();
+
+    async function startExperiment() {
         const inputVal = document.getElementById('subject-id-input').value.trim();
         if (!inputVal || !/^[A-Za-z0-9_-]{1,30}$/.test(inputVal)) {
             alert('请输入有效的被试编号（仅使用字母、数字、下划线或短横线）。');
@@ -1921,7 +1932,10 @@
             Session_UUID: sessionUUID,
             DataPipe_Condition: dataPipeCondition,
             Version: currentVersion,
-            Spatial_Layout: spatialLayout
+            Spatial_Layout: spatialLayout,
+            Browser_Context: getBrowserContext(),
+            User_Agent: navigator.userAgent || '',
+            Image_Format: 'lossless_webp'
         });
 
         document.getElementById('login-screen').classList.add('hidden');
@@ -1929,7 +1943,7 @@
 
         const formalTrials = buildFormalTrials();
         const practiceTrial = {
-            image:'test.png', risk:'Practice', scene:0, stimIndex:-1,
+            image:'test.webp', risk:'Practice', scene:0, stimIndex:-1,
             text:'当前处于拥堵路段。请观察当前道路情况和智驾助手的功能水平，再根据自己的感受完成评价。',
             config:{ key:'PracticeBalanced', internalName:'练习配置', abilityLevel:2, emotionLevel:2 },
             assistantLabel:'Practice'
@@ -1945,7 +1959,7 @@
                 firstUseFormalImages.push(path);
             }
         });
-        const scenePriorityQueue = ['img/test.png', ...firstUseFormalImages];
+        const scenePriorityQueue = ['img/test.webp', ...firstUseFormalImages];
 
         // 关键：不等待13张全部完成。滚动预加载在后台进行，实验前半段立即开始。
         scenePreloader.start(scenePriorityQueue);
