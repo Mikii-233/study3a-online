@@ -906,7 +906,7 @@
             <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
             <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
             <button class="login-btn" onclick="startExperiment()">进入体验</button>
-            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych rolling preload v3 · lossless WebP · WeChat enabled</div>
+            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych final freeze v5 · lossless WebP</div>
         </div>
     </div>
 
@@ -976,11 +976,11 @@
     }
 
     const CLEAN_CSV_COLUMNS = [
-        'Subject_ID','DataPipe_Condition','Sequence','Spatial_Layout','Formal_Trial_Order',
+        'Subject_ID','Session_UUID','DataPipe_Condition','Version','Sequence','Spatial_Layout','Formal_Trial_Order',
         'Block','Block_Position','Image_Number','Image_ID','Image_File','Scene_ID','Risk_Level',
         'Assistant_Label','Config_Code','Config_Type','Config_Name_CN','Ability_Level','Emotion_Level',
         'Trust_Score','Trust_RT_ms','Cooperation_Score','Cooperation_RT_ms','Back_to_Q1_Count','Total_Trial_Time_ms',
-        'Image_Preloaded_Before_Trial','Image_Wait_ms','Preload_Loaded_Count_At_Trial_Start',
+        'Experiment_Total_Time_ms','Formal_Total_Time_ms','Page_Hidden_Count','Page_Hidden_Total_ms',
         'Baseline_Ability_Points','Baseline_Emotion_Points','Browser_Context','Image_Format'
     ];
 
@@ -992,9 +992,16 @@
 
     function buildCleanFormalCSV() {
         const rows = jsPsych.data.get().filter({Event_Type:'Formal_Trial'}).values();
+        const sessionMetrics = {
+            Experiment_Total_Time_ms: experimentTotalTimeMs(),
+            Formal_Total_Time_ms: formalTotalTimeMs(),
+            Page_Hidden_Count: pageHiddenCount,
+            Page_Hidden_Total_ms: pageHiddenTotalMs
+        };
         const lines = [CLEAN_CSV_COLUMNS.join(',')];
         rows.forEach(row => {
-            lines.push(CLEAN_CSV_COLUMNS.map(col => csvEscape(row[col])).join(','));
+            const exportRow = {...row, ...sessionMetrics};
+            lines.push(CLEAN_CSV_COLUMNS.map(col => csvEscape(exportRow[col])).join(','));
         });
         return lines.join('\r\n');
     }
@@ -1075,9 +1082,68 @@
         { image:'low6.webp',  risk:'Low',  scene:6 }
     ].map((x, i) => ({...x, stimIndex:i, text:sceneText[x.scene]}));
 
+    /* =========================================================
+       核心过程质量记录（被试层面）
+       ---------------------------------------------------------
+       - Experiment_Total_Time_ms：欢迎页开始到最后一个正式 trial 完成
+       - Formal_Total_Time_ms：点击“开始正式体验”到最后一个正式 trial 完成（包含中途休息）
+       - Page_Hidden_Count / Page_Hidden_Total_ms：上述整个实验期间页面切到后台的总次数与总时长
+       ========================================================= */
+    let experimentStartedAtMs = null;
+    let formalStartedAtMs = null;
+    let experimentEndedAtMs = null;
+    let pageHiddenCount = 0;
+    let pageHiddenTotalMs = 0;
+    let pageHiddenStartedAtMs = null;
+
+    function experimentIsActive() {
+        return experimentStartedAtMs !== null && experimentEndedAtMs === null;
+    }
+
+    function handleVisibilityChange() {
+        const now = Date.now();
+        if (document.hidden) {
+            if (experimentIsActive() && pageHiddenStartedAtMs === null) {
+                pageHiddenCount++;
+                pageHiddenStartedAtMs = now;
+            }
+        } else if (pageHiddenStartedAtMs !== null) {
+            if (experimentIsActive()) {
+                pageHiddenTotalMs += Math.max(0, now - pageHiddenStartedAtMs);
+            } else if (experimentEndedAtMs !== null) {
+                pageHiddenTotalMs += Math.max(0, experimentEndedAtMs - pageHiddenStartedAtMs);
+            }
+            pageHiddenStartedAtMs = null;
+        }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    function finalizeExperimentTiming() {
+        if (experimentEndedAtMs !== null) return;
+        experimentEndedAtMs = Date.now();
+        if (pageHiddenStartedAtMs !== null) {
+            pageHiddenTotalMs += Math.max(0, experimentEndedAtMs - pageHiddenStartedAtMs);
+            pageHiddenStartedAtMs = null;
+        }
+    }
+
+    function experimentTotalTimeMs() {
+        return (experimentStartedAtMs !== null && experimentEndedAtMs !== null)
+            ? Math.max(0, experimentEndedAtMs - experimentStartedAtMs)
+            : null;
+    }
+
+    function formalTotalTimeMs() {
+        return (formalStartedAtMs !== null && experimentEndedAtMs !== null)
+            ? Math.max(0, experimentEndedAtMs - formalStartedAtMs)
+            : null;
+    }
+
     const jsPsych = initJsPsych({
         display_element: 'jspsych-target',
         on_finish: async function() {
+            finalizeExperimentTiming();
             const rawCleanCsv = buildCleanFormalCSV();
             const csvString = "\uFEFF" + rawCleanCsv;
             prepareLocalBackup(csvString);
@@ -1620,7 +1686,10 @@
             </div>`,
             data: {Event_Type:'Formal_Instruction'},
             on_load: function() {
-                document.getElementById('formal-start').addEventListener('click', () => jsPsych.finishTrial());
+                document.getElementById('formal-start').addEventListener('click', () => {
+                    if (formalStartedAtMs === null) formalStartedAtMs = Date.now();
+                    jsPsych.finishTrial();
+                });
             }
         };
     }
@@ -1632,9 +1701,9 @@
             choices: 'NO_KEYS',
             stimulus: `
             <div class="fullscreen-container">
-                <div class="guide-box" style="text-align:center;">
-                    <div class="guide-title" style="color:#4CAF50;">已经完成一半，请休息片刻</div>
-                    <div style="font-size:22px;line-height:1.9;color:#ddd;">
+                <div class="guide-box" style="text-align:left;">
+                    <div class="guide-title" style="color:#4CAF50;text-align:center;">已经完成一半，请休息片刻</div>
+                    <div style="font-size:22px;line-height:1.9;color:#ddd;text-align:left;">
                         您已经完成一半的道路体验，请适当放松眼睛和身体。<br><br>
                         继续后操作方式不变：查看当前路况和智驾助手的功能水平，再依次完成两道评价题。
                     </div>
@@ -1908,9 +1977,6 @@
                             Cooperation_RT_ms: coopRT,
                             Back_to_Q1_Count: backToQ1Count,
                             Total_Trial_Time_ms: totalStart === null ? null : Date.now() - totalStart,
-                            Image_Preloaded_Before_Trial: imagePreloadedBeforeTrial ? 1 : 0,
-                            Image_Wait_ms: imageWaitMs,
-                            Preload_Loaded_Count_At_Trial_Start: preloadLoadedCountAtTrialStart,
                             Baseline_Ability_Points: baselineAbility,
                             Baseline_Emotion_Points: baselineEmotion,
                             Browser_Context: getBrowserContext(),
@@ -2031,6 +2097,8 @@
             User_Agent: navigator.userAgent || '',
             Image_Format: 'lossless_webp'
         });
+
+        experimentStartedAtMs = Date.now();
 
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('jspsych-target').innerHTML = '';
