@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>智能驾驶体验</title>
-    <!-- build: 2026-08-15-jspsych-rolling-preload-v3-webp-wechat-test -->
+    <!-- build: 2026-08-16-jspsych-webp-responsive-font-v4 -->
     <script src="jspsych/jspsych.js"></script>
     <script src="plugins/plugin-html-keyboard-response.js"></script>
     <link rel="stylesheet" href="jspsych/jspsych.css">
@@ -22,6 +22,8 @@
             overflow-x: hidden;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
         }
         #jspsych-target { width: 100%; min-height: 100dvh; }
         .jspsych-display-element {
@@ -141,10 +143,11 @@
             border-radius: 8px;
             padding: 20px;
             border-top: 4px solid #64b5f6;
+            text-align: left;
         }
         .concept-card.warmth { border-top-color: #ffb74d; }
-        .concept-card h3 { margin-top: 0; color: #e0e0e0; border-bottom: 1px solid #555; padding-bottom: 10px; font-size: 20px; }
-        .concept-card p { font-size: 16px; color: #b0bec5; line-height: 1.6; }
+        .concept-card h3 { margin-top: 0; color: #e0e0e0; border-bottom: 1px solid #555; padding-bottom: 10px; font-size: 20px; text-align:left; }
+        .concept-card p { font-size: 16px; color: #b0bec5; line-height: 1.6; text-align:left; }
         .quiz-section {
             background-color: #15151a;
             border: 1px solid #444;
@@ -230,9 +233,10 @@
             box-sizing: border-box;
         }
         .assistant-card-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 14px; color: #fff; }
-        .mini-dim-row { display: flex; align-items: center; justify-content:center; gap: 14px; margin: 12px 0; }
-        .mini-dim-label { width: 110px; font-size: 18px; font-weight: bold; white-space:nowrap; }
-        .mini-bars { display: flex; gap: 10px; }
+        /* 助手学习页：属性名称与能量条分两行，避免大字体与能量条互相遮挡。 */
+        .mini-dim-row { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; margin:10px 0 12px; min-width:0; }
+        .mini-dim-label { width:auto; max-width:100%; font-size:18px; font-weight:bold; white-space:normal; line-height:1.25; text-align:center; }
+        .mini-bars { display:flex; justify-content:center; gap:10px; flex-wrap:nowrap; max-width:100%; }
         .mini-bar { width: 54px; height: 20px; border: 2px solid #777; border-radius: 5px; background-color: rgba(255,255,255,0.04); }
         .mini-bar.comp.on { background-color: #4CAF50; border-color: #4CAF50; box-shadow: 0 0 8px rgba(76,175,80,0.35); }
         .mini-bar.warm.on { background-color: #FF9800; border-color: #FF9800; box-shadow: 0 0 8px rgba(255,152,0,0.35); }
@@ -250,6 +254,7 @@
             flex-direction: column;
             align-items: center;
             width: 50%;
+            min-width: 0;
             box-sizing: border-box;
         }
         .panel-title {
@@ -273,6 +278,9 @@
             margin-bottom: 5px;
             text-align: center;
             font-weight: bold;
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
         .block-container { display: flex; gap: clamp(10px, 1vw, 18px); justify-content: center; }
         .block {
@@ -393,8 +401,18 @@
         }
         .assistant-note { color:#aeb7c2; font-size:15px; line-height:1.55; margin-top:10px; text-align:center; }
         .assistant-profile { color:#ffcf8a; font-size:16px; line-height:1.4; margin:2px 0 12px; text-align:center; font-weight:bold; }
-        .rating-back { position:absolute; top:5px; right:10px; border:1px solid #666; border-radius:7px; background:#1f2028; color:#c8d2dc; padding:4px 9px; font-size:12px; cursor:pointer; }
-        .rating-back.hidden { display:none; }
+        .rating-topline {
+            width:min(760px,90vw);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            min-height:30px;
+            margin-bottom:4px;
+            box-sizing:border-box;
+        }
+        .rating-back { position:static; flex:0 0 auto; border:1px solid #666; border-radius:7px; background:#1f2028; color:#c8d2dc; padding:5px 10px; font-size:12px; line-height:1.25; cursor:pointer; }
+        .rating-back.hidden { visibility:hidden; pointer-events:none; }
         .rating-options {
             display:grid;
             grid-template-columns:repeat(5, 1fr);
@@ -445,12 +463,14 @@
         .rating-confirm:disabled { opacity:.4; cursor:not-allowed; }
         .rating-zone { position:relative; }
         .rating-progress {
-            position:absolute;
-            top:6px;
-            left:12px;
+            position:static;
+            flex:1 1 auto;
+            min-width:0;
             font-size:14px;
             color:#9e9e9e;
             margin:0;
+            text-align:left;
+            line-height:1.3;
         }
         .trial-shell { display:flex; flex-direction:column; height:100dvh; min-height:100dvh; width:100%; overflow:hidden; box-sizing:border-box; }
         .scene-image-frame {
@@ -658,9 +678,9 @@
             }
             .assistant-card { padding: 9px 7px; border-radius:9px; }
             .assistant-card-title { font-size:16px; margin-bottom:7px; }
-            .mini-dim-row { gap:5px; margin:6px 0; }
-            .mini-dim-label { width:58px; font-size:12px; white-space:nowrap; flex:0 0 auto; }
-            .mini-bars { gap:3px; flex:0 0 auto; }
+            .mini-dim-row { flex-direction:column; align-items:center; gap:4px; margin:7px 0 9px; }
+            .mini-dim-label { width:auto; max-width:100%; font-size:12px; white-space:normal; line-height:1.2; text-align:center; }
+            .mini-bars { gap:3px; flex:0 0 auto; justify-content:center; }
             .mini-bar { width:20px; height:11px; border-width:1.5px; border-radius:3px; }
             .assistant-note { font-size:11.5px; line-height:1.35; margin-top:4px; }
 
@@ -729,16 +749,22 @@
             .block-container { gap:4px; }
             .block { width:25px; height:12px; border-width:1.5px; border-radius:4px; }
 
+            .rating-topline { width:94vw; min-height:32px; margin-bottom:5px; }
+            .rating-progress { font-size:12px; }
+            .rating-back { font-size:11px; padding:5px 8px; white-space:nowrap; }
             .rating-question {
-                max-width: 96vw;
+                max-width: 94vw;
                 font-size: 15px;
-                line-height: 1.25;
-                margin-bottom: 4px;
-                white-space: nowrap;
+                line-height: 1.35;
+                margin: 2px 0 5px;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                text-align:center;
             }
             .rating-question.long-question {
-                font-size: clamp(10.5px, 2.85vw, 12.5px);
-                white-space: nowrap;
+                font-size: clamp(12.5px, 3.2vw, 15px);
+                line-height:1.35;
+                white-space: normal;
             }
             .rating-options {
                 width: 94vw;
@@ -762,6 +788,40 @@
                 font-size: 14px;
             }
             .device-note { font-size:12px; line-height:1.4; margin-top:8px; }
+
+            /* 系统大字体/浏览器缩放造成溢出时，JS 自动启用内容驱动的整页滚动。 */
+            .trial-shell.adaptive-scroll {
+                height:auto !important;
+                min-height:100svh !important;
+                overflow-x:hidden !important;
+                overflow-y:auto !important;
+                align-items:stretch;
+            }
+            .trial-shell.adaptive-scroll > div:nth-child(1),
+            .trial-shell.adaptive-scroll > div:nth-child(2),
+            .trial-shell.adaptive-scroll > div:nth-child(3),
+            .trial-shell.adaptive-scroll > div:nth-child(4) {
+                flex:0 0 auto !important;
+                height:auto !important;
+                max-height:none !important;
+                overflow:visible !important;
+            }
+            .trial-shell.adaptive-scroll > div:nth-child(1) { min-height:62px; }
+            .trial-shell.adaptive-scroll > div:nth-child(2) { min-height:170px; padding:8px 0 !important; }
+            .trial-shell.adaptive-scroll > div:nth-child(3) { min-height:0; padding:10px 0 8px !important; }
+            .trial-shell.adaptive-scroll > div:nth-child(4) {
+                min-height:0;
+                padding:10px 8px calc(10px + env(safe-area-inset-bottom)) !important;
+                justify-content:flex-start !important;
+            }
+            .trial-shell.adaptive-scroll .assistant-badge {
+                white-space:normal;
+                overflow:visible;
+                text-overflow:clip;
+                text-align:center;
+                line-height:1.35;
+            }
+            .trial-shell.adaptive-scroll .matrix-shell { padding-bottom:4px; }
         }
 
         /* 手机横屏仍可使用，但给竖屏留出更稳定的主要设计空间。 */
@@ -1635,8 +1695,10 @@
                 </div>
 
                 <div class="rating-zone" style="flex:0 0 25%;width:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#2b2b36;box-sizing:border-box;padding:20px 12px 6px;overflow:hidden;">
-                    <div id="rating-progress" class="rating-progress">第 1 题 / 共 2 题</div>
-                    <button id="rating-back" class="rating-back hidden" type="button">返回上一题</button>
+                    <div class="rating-topline">
+                        <div id="rating-progress" class="rating-progress">第 1 题 / 共 2 题</div>
+                        <button id="rating-back" class="rating-back hidden" type="button">返回上一题</button>
+                    </div>
                     <div id="rating-question" class="rating-question">${question1}</div>
                     <div id="rating-options" class="rating-options">${ratingButtons}</div>
                     <div class="rating-anchors"><span>1 非常不赞同</span><span>3 一般</span><span>5 非常赞同</span></div>
@@ -1659,6 +1721,35 @@
                 const confirmBtn = document.getElementById('rating-confirm');
                 const backBtn = document.getElementById('rating-back');
                 const questionEl = document.getElementById('rating-question');
+                const trialShell = document.querySelector('.trial-shell');
+                let trialResizeObserver = null;
+
+                function elementIsClipped(el) {
+                    if (!el) return false;
+                    return (el.scrollHeight - el.clientHeight > 2) || (el.scrollWidth - el.clientWidth > 2);
+                }
+
+                function enableAdaptiveLayoutIfNeeded() {
+                    if (!trialShell || trialShell.classList.contains('adaptive-scroll')) return;
+                    const children = Array.from(trialShell.children);
+                    const clippedChild = children.some(elementIsClipped);
+                    const clippedQuestion = elementIsClipped(questionEl);
+                    const clippedMatrix = elementIsClipped(trialShell.querySelector('.matrix-shell'));
+                    const viewportH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                    const shellTooTall = trialShell.scrollHeight > viewportH + 3;
+                    if (clippedChild || clippedQuestion || clippedMatrix || shellTooTall) {
+                        trialShell.classList.add('adaptive-scroll');
+                    }
+                }
+
+                if (trialShell) {
+                    requestAnimationFrame(() => requestAnimationFrame(enableAdaptiveLayoutIfNeeded));
+                    if ('ResizeObserver' in window) {
+                        trialResizeObserver = new ResizeObserver(enableAdaptiveLayoutIfNeeded);
+                        trialResizeObserver.observe(trialShell);
+                        Array.from(trialShell.children).forEach(el => trialResizeObserver.observe(el));
+                    }
+                }
                 const sceneImg = document.getElementById('scene-image');
                 const sceneHint = document.getElementById('scene-load-hint');
                 const imagePath = sceneImg ? sceneImg.dataset.src : `img/${trialData.image}`;
@@ -1679,6 +1770,7 @@
                     if (slowHintTimer) clearTimeout(slowHintTimer);
                     if (sceneHint) sceneHint.style.display = 'none';
                     options.forEach(btn => btn.disabled = false);
+                    requestAnimationFrame(enableAdaptiveLayoutIfNeeded);
                 }
 
                 function showImageError(error) {
@@ -1754,6 +1846,7 @@
                         backBtn.classList.remove('hidden');
                         renderSelection(coopDraft);
                     }
+                    requestAnimationFrame(enableAdaptiveLayoutIfNeeded);
                 }
 
                 options.forEach(btn => {
@@ -1782,6 +1875,7 @@
                     } else {
                         coopScore = coopDraft;
                         coopRT += Date.now() - phaseStart;
+                        if (trialResizeObserver) trialResizeObserver.disconnect();
                         const imageBase = String(trialData.image || '').replace(/\.(?:png|webp)$/i,'');
                         const numMatch = imageBase.match(/(\d+)$/);
                         const sceneNum = numMatch ? Number(numMatch[1]) : trialData.scene;
