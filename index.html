@@ -906,7 +906,7 @@
             <div style="color:#b0bec5;font-size:16px;line-height:1.6;margin-bottom:18px;max-width:420px;">请输入您在前置问卷中使用的被试编号，以便匹配两部分数据。请勿填写姓名、手机号等个人信息。</div>
             <input type="text" id="subject-id-input" class="login-input" placeholder="例如：001" inputmode="numeric" maxlength="30" autocomplete="off"><br>
             <button class="login-btn" onclick="startExperiment()">进入体验</button>
-            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych final freeze v5 · lossless WebP</div>
+            <div style="margin-top:12px;font-size:11px;color:#666;">Build: jsPsych final v6 · dual allocation controls · lossless WebP</div>
         </div>
     </div>
 
@@ -1449,7 +1449,7 @@
                         现在有一款智驾助手，它的<span class="highlight-text">能力属性</span>和<span class="highlight-text">情感属性</span>目前处于相同的基本水平。为了进一步提升驾驶体验，您现在拥有一次升级机会，可以为两类属性分配 <span class="highlight-text">10 个额外升级点</span>。请按照自己的偏好决定如何分配。
                     </div>
                     <div style="text-align:center;color:#ffcf8a;font-size:16px;font-weight:bold;line-height:1.55;margin-bottom:8px;">本任务只用于了解您对两类功能的个人偏好，不会影响后续实验。</div>
-                    <div style="text-align:center;color:#b0bec5;font-size:17px;">两类属性都至少保留1点；两边加起来始终为10点。</div>
+                    <div style="text-align:center;color:#b0bec5;font-size:17px;line-height:1.55;">两类属性都至少保留1点；点击任一属性的“＋/−”进行调整，<span style="color:#ffcf8a;font-weight:bold;">两边加起来始终为10点</span>。</div>
                     <div class="allocation-wrap">
                         <div class="allocation-card comp">
                             <div style="font-size:24px;font-weight:bold;color:#4CAF50;">能力属性</div>
@@ -1459,7 +1459,7 @@
                         <div class="allocation-card warm">
                             <div style="font-size:24px;font-weight:bold;color:#FF9800;">情感属性</div>
                             <div id="emotion-score" class="allocation-score" style="color:#FF9800;">5</div>
-                            <div style="height:44px;display:flex;align-items:center;justify-content:center;color:#888;">随能力点数自动变化</div>
+                            <div class="allocation-controls"><button id="emotion-minus" class="mini-btn">−</button><button id="emotion-plus" class="mini-btn">＋</button></div>
                         </div>
                     </div>
                     <div id="allocation-warn" class="warn-text"></div>
@@ -1468,15 +1468,43 @@
             </div>`,
             on_load: function() {
                 let a = 5;
+                let e = 5;
+
+                const abilityMinus = document.getElementById('ability-minus');
+                const abilityPlus = document.getElementById('ability-plus');
+                const emotionMinus = document.getElementById('emotion-minus');
+                const emotionPlus = document.getElementById('emotion-plus');
+
                 const render = () => {
                     document.getElementById('ability-score').innerText = a;
-                    document.getElementById('emotion-score').innerText = 10 - a;
+                    document.getElementById('emotion-score').innerText = e;
+
+                    // 两类属性均至少保留1点、最多9点；总点数始终固定为10。
+                    abilityMinus.disabled = a <= 1;
+                    abilityPlus.disabled = a >= 9;
+                    emotionMinus.disabled = e <= 1;
+                    emotionPlus.disabled = e >= 9;
                 };
-                document.getElementById('ability-minus').addEventListener('click', () => { if (a > 1) { a--; render(); } });
-                document.getElementById('ability-plus').addEventListener('click', () => { if (a < 9) { a++; render(); } });
+
+                // 任意一侧增加1点，另一侧同步减少1点；反之亦然。
+                abilityMinus.addEventListener('click', () => {
+                    if (a > 1 && e < 9) { a--; e++; render(); }
+                });
+                abilityPlus.addEventListener('click', () => {
+                    if (a < 9 && e > 1) { a++; e--; render(); }
+                });
+                emotionMinus.addEventListener('click', () => {
+                    if (e > 1 && a < 9) { e--; a++; render(); }
+                });
+                emotionPlus.addEventListener('click', () => {
+                    if (e < 9 && a > 1) { e++; a--; render(); }
+                });
+
+                render();
+
                 document.getElementById('allocation-submit').addEventListener('click', () => {
                     baselineAbility = a;
-                    baselineEmotion = 10 - a;
+                    baselineEmotion = e;
                     jsPsych.finishTrial({
                         Event_Type:'Baseline_Allocation',
                         Baseline_Ability_Points: baselineAbility,
